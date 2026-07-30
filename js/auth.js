@@ -91,7 +91,6 @@ window.sair = function () {
 // ---------- Página de login (index.html) ----------
 const formLogin = document.getElementById("formLogin");
 if (formLogin) {
-  // se já estiver logado, pula direto pro app
   onAuthStateChanged(auth, (user) => {
     if (user) window.location.href = "app.html";
   });
@@ -126,8 +125,15 @@ if (document.getElementById("areaPagina")) {
       window.location.href = "index.html";
       return;
     }
-    const perfil = await carregarOuCriarPerfil(user);
-    // avisa o resto do app (nav.js) que já sabemos quem é o usuário
+    let perfil;
+    try {
+      perfil = await carregarOuCriarPerfil(user);
+    } catch (err) {
+      console.error("Falha ao carregar perfil do Firestore:", err);
+      const base = PERFIS_INICIAIS[(user.email || "").toLowerCase()]
+        || { nome: user.email, cargo: "Administrador" };
+      perfil = { nome: base.nome, cargo: base.cargo };
+    }
     window.dispatchEvent(new CustomEvent("usuarioPronto", { detail: perfil }));
   });
 }
