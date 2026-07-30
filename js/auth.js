@@ -26,6 +26,7 @@ import {
   getFirestore,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   addDoc,
   updateDoc,
@@ -43,7 +44,7 @@ window.firebaseAuth = auth;
 window.firebaseDb = db;
 // funções do Firestore, para uso em scripts que não são módulos
 // (cadastros.js, e os próximos: obras.js, frota.js, apontamento.js)
-window.fs = { doc, getDoc, setDoc, addDoc, updateDoc, collection, serverTimestamp };
+window.fs = { doc, getDoc, getDocs, setDoc, addDoc, updateDoc, collection, serverTimestamp };
 
 // Usado só para preencher nome/cargo na primeira vez que cada
 // admin loga. Depois disso os dados moram só no Firestore.
@@ -97,6 +98,7 @@ window.sair = function () {
 // ---------- Página de login (index.html) ----------
 const formLogin = document.getElementById("formLogin");
 if (formLogin) {
+  // se já estiver logado, pula direto pro app
   onAuthStateChanged(auth, (user) => {
     if (user) window.location.href = "app.html";
   });
@@ -140,6 +142,7 @@ if (document.getElementById("areaPagina")) {
         || { nome: user.email, cargo: "Administrador" };
       perfil = { nome: base.nome, cargo: base.cargo };
     }
+    // avisa o resto do app (nav.js) que já sabemos quem é o usuário
     window.dispatchEvent(new CustomEvent("usuarioPronto", { detail: perfil }));
   });
 }
