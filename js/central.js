@@ -60,31 +60,35 @@ function renderCentral() {
 
       <div class="card-indicador">
         <div class="topo">
-          <div class="icone-indicador">${iconeSvg('<path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/>')}</div>
+          <span class="eyebrow">Obras</span>
+          <span class="icone-indicador">${iconeSvg('<path d="M3 21h18"/><path d="M5 21V9l7-5 7 5v12"/><path d="M9 21v-6h6v6"/>')}</span>
         </div>
         <div class="valor">${i.obrasAtivas}</div>
         <div class="rotulo">Obras ativas</div>
       </div>
 
-      <div class="card-indicador">
+      <div class="card-indicador tipo-frota">
         <div class="topo">
-          <div class="icone-indicador sucesso">${iconeSvg('<rect x="3" y="8" width="13" height="10" rx="1.5"/><path d="M16 11h3l2 2v5h-5z"/><circle cx="7.5" cy="19.5" r="1.5"/><circle cx="18" cy="19.5" r="1.5"/>')}</div>
+          <span class="eyebrow">Frota</span>
+          <span class="icone-indicador">${iconeSvg('<rect x="3" y="8" width="13" height="10" rx="1.5"/><path d="M16 11h3l2 2v5h-5z"/><circle cx="7.5" cy="19.5" r="1.5"/><circle cx="18" cy="19.5" r="1.5"/>')}</span>
         </div>
         <div class="valor">${i.maquinasTrabalhando}</div>
         <div class="rotulo">Máquinas trabalhando</div>
       </div>
 
-      <div class="card-indicador">
+      <div class="card-indicador tipo-frota">
         <div class="topo">
-          <div class="icone-indicador sucesso">${iconeSvg('<rect x="1" y="7" width="14" height="10" rx="1.5"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/>')}</div>
+          <span class="eyebrow">Frota</span>
+          <span class="icone-indicador">${iconeSvg('<rect x="1" y="7" width="14" height="10" rx="1.5"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/>')}</span>
         </div>
         <div class="valor">${i.caminhoesTrabalhando}</div>
         <div class="rotulo">Caminhões trabalhando</div>
       </div>
 
-      <div class="card-indicador">
+      <div class="card-indicador tipo-atencao">
         <div class="topo">
-          <div class="icone-indicador alerta">${iconeSvg('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>')}</div>
+          <span class="eyebrow">Manutenção</span>
+          <span class="icone-indicador">${iconeSvg('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>')}</span>
         </div>
         <div class="valor">${i.emManutencao}</div>
         <div class="rotulo">Em manutenção</div>
@@ -92,15 +96,17 @@ function renderCentral() {
 
       <div class="card-indicador">
         <div class="topo">
-          <div class="icone-indicador">${iconeSvg('<path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L4 15.6"/>')}</div>
+          <span class="eyebrow">Produção</span>
+          <span class="icone-indicador">${iconeSvg('<path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L4 15.6"/>')}</span>
         </div>
         <div class="valor">${i.producaoHoje}</div>
         <div class="rotulo">Produção do dia</div>
       </div>
 
-      <div class="card-indicador">
+      <div class="card-indicador tipo-atencao">
         <div class="topo">
-          <div class="icone-indicador alerta">${iconeSvg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>')}</div>
+          <span class="eyebrow">Alertas</span>
+          <span class="icone-indicador">${iconeSvg('<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>')}</span>
         </div>
         <div class="valor">${i.alertas}</div>
         <div class="rotulo">Alertas importantes</div>
@@ -118,7 +124,7 @@ function renderCentral() {
         <div class="grafico-barras">
           ${PRODUCAO_SEMANA.map(d => `
             <div class="barra-col">
-              <div class="barra" style="height:${(d.valor / maxProd * 100) || 2}%"></div>
+              <div class="barra${d.valor === 0 ? ' fraca' : ''}" style="height:${(d.valor / maxProd * 100) || 2}%"></div>
               <span>${d.dia}</span>
             </div>
           `).join("")}
@@ -133,7 +139,7 @@ function renderCentral() {
         <div class="lista-simples">
           ${ULTIMOS_APONTAMENTOS.map(a => `
             <div class="item-lista">
-              <span class="ponto"></span>
+              <span class="item-icone">${iconeSvg('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>')}</span>
               <span class="principal">${a.obra}</span>
               <span class="secundario">${a.quando}</span>
             </div>
@@ -164,7 +170,7 @@ function renderCentral() {
         <div class="lista-simples">
           ${RESUMO_MANUTENCAO.map(m => `
             <div class="item-lista">
-              <span class="ponto" style="background:var(--alerta)"></span>
+              <span class="item-icone">${iconeSvg('<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/>')}</span>
               <span class="principal">${m.equipamento}<br><span class="secundario">${m.status} · ${m.secundario}</span></span>
             </div>
           `).join("")}
