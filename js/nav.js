@@ -62,6 +62,8 @@ function irParaPagina(pagina) {
 
   if (pagina === "central") {
     renderCentral();
+  } else if (pagina.startsWith("cad-")) {
+    renderCadastro(pagina);
   } else {
     renderPlaceholder(pagina);
   }
