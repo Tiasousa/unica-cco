@@ -1344,3 +1344,544 @@ body.menu-mobile-aberto {
     padding-right: 12px;
   }
 }
+
+/* =========================================================
+   ABASTECIMENTOS — seleção múltipla e lançamento em lote
+   ========================================================= */
+
+.modulo-abastecimentos {
+  padding-bottom: 92px;
+}
+
+.abast-cabecalho-interno {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 22px;
+}
+
+.abast-eyebrow {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--amarelo);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+}
+
+.abast-cabecalho-interno h2 {
+  margin-bottom: 5px;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.abast-cabecalho-interno p {
+  color: #85857f;
+  font-size: 12.5px;
+}
+
+.abast-etapas {
+  display: flex;
+  align-items: center;
+  padding-top: 4px;
+}
+
+.abast-etapas span {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #73736e;
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.abast-etapas span.ativo {
+  color: var(--preto);
+  background: var(--amarelo);
+  border-color: var(--amarelo);
+}
+
+.abast-etapas i {
+  width: 34px;
+  height: 1px;
+  background: #303136;
+}
+
+.abast-carregando {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #777771;
+  font-size: 13px;
+}
+
+.abast-dados-gerais {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(160px, .65fr) minmax(220px, 1fr);
+  gap: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-radius: var(--radius);
+}
+
+.abast-dados-gerais .campo,
+.abast-campos-lancamento .campo {
+  margin-bottom: 0;
+}
+
+.abast-dados-gerais input,
+.abast-dados-gerais select,
+.abast-campos-lancamento input {
+  width: 100%;
+  min-height: 44px;
+  background: #141414;
+  border: 1px solid #2e2e2e;
+  color: var(--branco);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  font-size: 14px;
+}
+
+.abast-dados-gerais input:focus,
+.abast-dados-gerais select:focus,
+.abast-campos-lancamento input:focus {
+  border-color: var(--amarelo);
+}
+
+.abast-selecao-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.abast-busca {
+  min-width: 260px;
+}
+
+.abast-filtros {
+  flex-shrink: 0;
+}
+
+.abast-grid-equipamentos {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 13px;
+}
+
+.abast-card-equipamento {
+  position: relative;
+  min-height: 166px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 17px;
+  overflow: hidden;
+  text-align: left;
+  color: var(--branco);
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-radius: var(--radius);
+  transition:
+    transform var(--transicao),
+    border-color var(--transicao),
+    background var(--transicao),
+    box-shadow var(--transicao);
+}
+
+.abast-card-equipamento:hover {
+  transform: translateY(-1px);
+  border-color: #38393f;
+}
+
+.abast-card-equipamento.selecionado {
+  background: linear-gradient(145deg, rgba(52, 199, 123, .13), rgba(52, 199, 123, .035));
+  border-color: var(--sucesso);
+  box-shadow: 0 0 0 1px rgba(52, 199, 123, .12);
+  animation: abast-selecionar 160ms ease;
+}
+
+@keyframes abast-selecionar {
+  from { transform: scale(.985); }
+  to { transform: scale(1); }
+}
+
+.abast-card-check {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  background: #18191c;
+  border: 1px solid #34353a;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.abast-card-equipamento.selecionado .abast-card-check {
+  color: #07150d;
+  background: var(--sucesso);
+  border-color: var(--sucesso);
+}
+
+.abast-card-tipo {
+  margin-bottom: 14px;
+  color: #777871;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+}
+
+.abast-card-equipamento strong {
+  max-width: calc(100% - 26px);
+  margin-bottom: 4px;
+  overflow: hidden;
+  font-size: 14.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.abast-card-identificacao {
+  color: #969690;
+  font-size: 12px;
+}
+
+.abast-card-medidor {
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 13px;
+  margin-top: auto;
+  border-top: 1px solid var(--borda-suave);
+}
+
+.abast-card-medidor small {
+  color: #686963;
+  font-size: 10.5px;
+}
+
+.abast-card-medidor b {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.abast-barra-acao {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-w);
+  z-index: 29;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 32px;
+  background: rgba(13, 14, 16, .96);
+  border-top: 1px solid #292a2e;
+  backdrop-filter: blur(10px);
+  transition: left var(--transicao);
+}
+
+.sidebar.recolhida ~ .btn-recolher ~ .conteudo .abast-barra-acao {
+  left: var(--sidebar-w-collapsed);
+}
+
+.abast-barra-acao div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.abast-barra-acao strong {
+  font-size: 13.5px;
+}
+
+.abast-barra-acao span {
+  color: #777771;
+  font-size: 11.5px;
+}
+
+.abast-barra-acao .btn-primario {
+  min-width: 150px;
+}
+
+.abast-resumo-lancamento {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.abast-resumo-lancamento > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: #101114;
+  border: 1px solid var(--borda-card);
+  border-radius: var(--radius-sm);
+}
+
+.abast-resumo-lancamento span {
+  color: #72736e;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+
+.abast-resumo-lancamento strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.abast-lista-lancamentos {
+  display: grid;
+  gap: 12px;
+}
+
+.abast-item-lancamento {
+  padding: 18px;
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-left: 3px solid var(--sucesso);
+  border-radius: var(--radius);
+}
+
+.abast-item-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.abast-item-cabecalho > div:first-child span {
+  display: block;
+  margin-bottom: 4px;
+  color: #7d7d77;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.abast-item-cabecalho h3 {
+  font-size: 15px;
+}
+
+.abast-medidor-anterior {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.abast-medidor-anterior span {
+  color: #70716b;
+  font-size: 10.5px;
+}
+
+.abast-medidor-anterior strong {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.abast-campos-lancamento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.abast-erro {
+  min-height: 18px;
+  margin-top: 12px;
+  color: #ff9c9c;
+  font-size: 12.5px;
+}
+
+.abast-acoes-finais {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  margin-top: 4px;
+  border-top: 1px solid var(--borda-suave);
+}
+
+.abast-sucesso {
+  min-height: 410px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.abast-sucesso-icone {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+  color: #07150d;
+  background: var(--sucesso);
+  border-radius: 50%;
+  font-size: 30px;
+  font-weight: 900;
+}
+
+.abast-sucesso h2 {
+  margin-bottom: 8px;
+  font-size: 22px;
+}
+
+.abast-sucesso p {
+  max-width: 480px;
+  margin-bottom: 22px;
+  color: #8b8b85;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+@media (max-width: 1180px) {
+  .abast-grid-equipamentos {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .modulo-abastecimentos {
+    padding-bottom: 90px;
+  }
+
+  .abast-cabecalho-interno {
+    gap: 14px;
+  }
+
+  .abast-dados-gerais {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .abast-dados-gerais .campo:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .abast-selecao-topo {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .abast-busca {
+    min-width: 0;
+  }
+
+  .abast-grid-equipamentos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .abast-barra-acao {
+    left: 0;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .abast-cabecalho-interno h2 {
+    font-size: 18px;
+  }
+
+  .abast-cabecalho-interno p {
+    max-width: 250px;
+  }
+
+  .abast-etapas i {
+    width: 20px;
+  }
+
+  .abast-dados-gerais,
+  .abast-resumo-lancamento,
+  .abast-campos-lancamento {
+    grid-template-columns: 1fr;
+  }
+
+  .abast-dados-gerais .campo:first-child {
+    grid-column: auto;
+  }
+
+  .abast-grid-equipamentos {
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+
+  .abast-card-equipamento {
+    min-height: 154px;
+    padding: 14px;
+  }
+
+  .abast-card-equipamento strong {
+    font-size: 13.5px;
+  }
+
+  .abast-card-check {
+    top: 10px;
+    right: 10px;
+  }
+
+  .abast-barra-acao span {
+    display: none;
+  }
+
+  .abast-barra-acao .btn-primario {
+    min-width: 128px;
+    padding-right: 13px;
+    padding-left: 13px;
+  }
+
+  .abast-item-cabecalho {
+    flex-direction: column;
+  }
+
+  .abast-medidor-anterior {
+    align-items: flex-start;
+  }
+
+  .abast-acoes-finais {
+    flex-direction: column-reverse;
+  }
+
+  .abast-acoes-finais button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 370px) {
+  .abast-grid-equipamentos {
+    grid-template-columns: 1fr;
+  }
+}
+
