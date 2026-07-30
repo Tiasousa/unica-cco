@@ -66,12 +66,10 @@ function irParaPagina(pagina) {
     renderPlaceholder(pagina);
   }
 
-  // marca item ativo no menu (tanto nav-item quanto nav-sublink)
   document.querySelectorAll(".nav-item, .nav-sublink").forEach(n => n.classList.remove("ativo"));
   const alvo = document.querySelector(`[data-pagina="${pagina}"]`);
   if (alvo) {
     alvo.classList.add("ativo");
-    // se for submenu, mantém o grupo pai aberto e marca o item-pai também
     const grupo = alvo.closest(".nav-grupo");
     if (grupo) {
       grupo.classList.add("aberto");
@@ -82,22 +80,19 @@ function irParaPagina(pagina) {
     }
   }
 
-  // fecha o menu no mobile após navegar
   document.getElementById("sidebar").classList.remove("aberta-mobile");
   document.getElementById("overlayMobile").classList.remove("ativo");
 
   window.scrollTo({ top: 0 });
 }
 
-// auth.js (Firebase) dispara este evento assim que confirmar quem
-// é o usuário logado — só então preenchemos nome/cargo e
-// carregamos a Central Operacional.
 window.addEventListener("usuarioPronto", (e) => {
   const usuario = e.detail;
-  document.getElementById("usuarioNome").textContent = usuario.nome;
-  document.getElementById("usuarioCargo").textContent = usuario.cargo;
-  const iniciais = usuario.nome.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
-  document.getElementById("avatarIniciais").textContent = iniciais;
+  const nome = usuario.nome || "Usuário";
+  document.getElementById("usuarioNome").textContent = nome;
+  document.getElementById("usuarioCargo").textContent = usuario.cargo || "";
+  const iniciais = nome.split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+  document.getElementById("avatarIniciais").textContent = iniciais || "--";
   renderCentral();
 });
 
@@ -107,7 +102,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("dataHoje").textContent = dataHoje;
 
-  // clique nos itens principais (com data-pagina)
   document.querySelectorAll(".nav-item[data-pagina], .nav-sublink[data-pagina]").forEach(item => {
     item.addEventListener("click", (e) => {
       e.preventDefault();
@@ -115,7 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // links internos dos painéis (ex: "Ver relatórios")
   document.querySelectorAll("a[data-pagina]").forEach(link => {
     link.addEventListener("click", (e) => {
       e.preventDefault();
@@ -123,7 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // abre/fecha submenus (Operação, Frota, Cadastros)
   document.querySelectorAll("[data-toggle]").forEach(toggle => {
     toggle.addEventListener("click", (e) => {
       e.preventDefault();
@@ -134,12 +126,10 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // recolher sidebar (desktop)
   document.getElementById("btnRecolher").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("recolhida");
   });
 
-  // menu mobile
   const sidebar = document.getElementById("sidebar");
   const overlay = document.getElementById("overlayMobile");
   document.getElementById("btnMenuMobile").addEventListener("click", () => {
