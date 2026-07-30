@@ -439,6 +439,9 @@ async function renderizarPagina(pagina) {
     case "caminhoes":
       return executarModulo("renderFrota", ["caminhoes"]);
 
+    case "abastecimentos":
+      return executarModulo("renderAbastecimentos");
+
 
     /* Cadastros gerais */
     case "cad-servicos":
@@ -459,7 +462,6 @@ async function renderizarPagina(pagina) {
     /* Módulos preparados para desenvolvimento */
     case "apontamento":
     case "frota-visao-geral":
-    case "abastecimentos":
     case "manutencoes":
     case "checklists":
     case "documentos-frota":
