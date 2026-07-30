@@ -29,7 +29,6 @@ const TITULOS_PAGINA = {
 
 // Etapa do plano de desenvolvimento em que cada módulo entra
 const ETAPA_MODULO = {
-  obras: "Etapa 4 — Obras",
   apontamento: "Etapa 6 — Apontamento Diário",
   maquinas: "Etapa 5 — Frota",
   caminhoes: "Etapa 5 — Frota",
@@ -62,6 +61,8 @@ function irParaPagina(pagina) {
 
   if (pagina === "central") {
     renderCentral();
+  } else if (pagina === "obras") {
+    renderObras();
   } else if (pagina.startsWith("cad-")) {
     renderCadastro(pagina);
   } else {
