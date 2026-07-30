@@ -27,6 +27,9 @@ import {
   doc,
   getDoc,
   setDoc,
+  addDoc,
+  updateDoc,
+  collection,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
@@ -38,6 +41,9 @@ const db = getFirestore(app);
 // disponíveis globalmente para os próximos módulos (Obras, Frota etc.)
 window.firebaseAuth = auth;
 window.firebaseDb = db;
+// funções do Firestore, para uso em scripts que não são módulos
+// (cadastros.js, e os próximos: obras.js, frota.js, apontamento.js)
+window.fs = { doc, getDoc, setDoc, addDoc, updateDoc, collection, serverTimestamp };
 
 // Usado só para preencher nome/cargo na primeira vez que cada
 // admin loga. Depois disso os dados moram só no Firestore.
