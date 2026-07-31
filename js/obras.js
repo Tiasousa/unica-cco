@@ -138,10 +138,10 @@ function renderizarListaObras() {
             <span class="badge ${badgeClasseObra(o.status)}">${rotuloStatusObra(o.status)}</span>
             <button class="btn-icone" title="Editar" data-editar-obra="${o.id}">${iconeLapis()}</button>
           </div>
-          <h3>${o.nome || "Sem nome"}</h3>
-          <p class="card-obra-info">${o.cliente ? o.cliente + " · " : ""}${o.cidade || "—"}</p>
+          <h3>${escaparHtml(o.nome) || "Sem nome"}</h3>
+          <p class="card-obra-info">${o.cliente ? escaparHtml(o.cliente) + " · " : ""}${escaparHtml(o.cidade) || "—"}</p>
           <div class="card-obra-rodape">
-            <span>${o._responsavelNome}</span>
+            <span>${escaparHtml(o._responsavelNome)}</span>
             <span>${formatarDataObra(o.dataInicio)}${o.previsaoTermino ? " → " + formatarDataObra(o.previsaoTermino) : ""}</span>
           </div>
         </div>
@@ -168,27 +168,27 @@ async function abrirModalObra(id) {
         <form id="formObra">
           <div class="campo">
             <label>Nome da obra *</label>
-            <input type="text" id="obraNome" value="${dados?.nome || ""}" required>
+            <input type="text" id="obraNome" value="${escaparHtml(dados?.nome)}" required>
           </div>
           <div class="linha-campos">
             <div class="campo">
               <label>Cliente</label>
-              <input type="text" id="obraCliente" value="${dados?.cliente || ""}">
+              <input type="text" id="obraCliente" value="${escaparHtml(dados?.cliente)}">
             </div>
             <div class="campo">
               <label>Cidade</label>
-              <input type="text" id="obraCidade" value="${dados?.cidade || ""}">
+              <input type="text" id="obraCidade" value="${escaparHtml(dados?.cidade)}">
             </div>
           </div>
           <div class="campo">
             <label>Endereço</label>
-            <input type="text" id="obraEndereco" value="${dados?.endereco || ""}">
+            <input type="text" id="obraEndereco" value="${escaparHtml(dados?.endereco)}">
           </div>
           <div class="campo">
             <label>Responsável</label>
             <select id="obraResponsavel">
               <option value="">Nenhum</option>
-              ${responsaveis.map(r => `<option value="${r.id}" ${r.id === dados?.responsavelId ? "selected" : ""}>${r.nome}</option>`).join("")}
+              ${responsaveis.map(r => `<option value="${r.id}" ${r.id === dados?.responsavelId ? "selected" : ""}>${escaparHtml(r.nome)}</option>`).join("")}
             </select>
           </div>
           <div class="linha-campos">
@@ -209,7 +209,7 @@ async function abrirModalObra(id) {
           </div>
           <div class="campo">
             <label>Observações</label>
-            <textarea id="obraObservacoes" rows="3">${dados?.observacoes || ""}</textarea>
+            <textarea id="obraObservacoes" rows="3">${escaparHtml(dados?.observacoes)}</textarea>
           </div>
           <div class="modal-erro" id="modalErro"></div>
           <div class="modal-acoes">
