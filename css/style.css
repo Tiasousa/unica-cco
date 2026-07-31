@@ -878,7 +878,7 @@ img { max-width: 100%; display: block; }
    OBRAS
    ========================================================= */
 
-.badge.concluida { color: #8FA8C4; border-color: #2C3E52; background: rgba(90,140,200,0.08); }
+.badge.concluida { color: #8FA8C4; border-color: #2C3E52; background: rgba(90,140,208,0.08); }
 
 .filtro-status { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip-status {
@@ -1885,3 +1885,21 @@ body.menu-mobile-aberto {
   }
 }
 
+/* =========================================================
+   OBRAS — estado desativada
+   ========================================================= */
+
+.card-obra-inativa {
+  opacity: 0.55;
+}
+.card-obra-inativa:hover {
+  opacity: 0.85;
+}
+
+.btn-icone-perigo {
+  color: #8A5555;
+}
+.btn-icone-perigo:hover {
+  border-color: var(--perigo);
+  color: var(--perigo);
+}
