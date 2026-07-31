@@ -1903,3 +1903,260 @@ body.menu-mobile-aberto {
   border-color: var(--perigo);
   color: var(--perigo);
 }
+
+/* =========================================================
+   FROTA — CARDS MODERNOS E FOTO
+   ========================================================= */
+
+.modulo-frota .cadastro-topo {
+  align-items: center;
+}
+
+.grid-frota {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card-frota {
+  overflow: hidden;
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-radius: 14px;
+  min-width: 0;
+  transition: transform var(--transicao), border-color var(--transicao), box-shadow var(--transicao);
+}
+
+.card-frota:hover {
+  transform: translateY(-2px);
+  border-color: #34363b;
+  box-shadow: 0 10px 28px rgba(0,0,0,.26);
+}
+
+.card-frota-imagem-wrap {
+  position: relative;
+  height: 176px;
+  overflow: hidden;
+  background: #151619;
+}
+
+.card-frota-imagem {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 240ms ease;
+}
+
+.card-frota:hover .card-frota-imagem {
+  transform: scale(1.025);
+}
+
+.card-frota-imagem-wrap::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 54%;
+  background: linear-gradient(to top, rgba(8,9,11,.82), transparent);
+  pointer-events: none;
+}
+
+.card-frota-status {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  backdrop-filter: blur(8px);
+}
+
+.card-frota-editar {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  background: rgba(8,9,11,.82);
+  border: 1px solid rgba(255,255,255,.14);
+  color: var(--branco);
+  backdrop-filter: blur(8px);
+}
+
+.card-frota-editar:hover {
+  border-color: var(--amarelo);
+  color: var(--amarelo);
+}
+
+.card-frota-editar svg {
+  width: 16px;
+  height: 16px;
+}
+
+.card-frota-conteudo {
+  padding: 17px 18px 18px;
+}
+
+.card-frota-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.card-frota-cabecalho > div {
+  min-width: 0;
+}
+
+.card-frota-tipo {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--amarelo);
+  font-size: 10.5px;
+  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: .9px;
+  text-transform: uppercase;
+}
+
+.card-frota h3 {
+  overflow: hidden;
+  color: var(--branco);
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-frota-identificador {
+  flex-shrink: 0;
+  max-width: 43%;
+  overflow: hidden;
+  padding: 6px 9px;
+  border: 1px solid #303238;
+  border-radius: 7px;
+  background: #191a1e;
+  color: #b8b9bd;
+  font-size: 11px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-frota-medidor {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 15px;
+  border-top: 1px solid var(--borda-suave);
+}
+
+.card-frota-medidor > span {
+  color: #777981;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.card-frota-medidor strong {
+  color: var(--branco);
+  font-size: 23px;
+  font-weight: 850;
+  letter-spacing: -.03em;
+  line-height: 1;
+}
+
+.card-frota-medidor small {
+  margin-left: 3px;
+  color: var(--amarelo);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.frota-foto-editor {
+  display: grid;
+  grid-template-columns: 132px 1fr;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid var(--borda-card);
+  border-radius: 11px;
+  background: #0f1012;
+}
+
+.frota-foto-preview-wrap {
+  width: 132px;
+  height: 92px;
+  overflow: hidden;
+  border: 1px solid #303238;
+  border-radius: 9px;
+  background: #151619;
+}
+
+.frota-foto-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.frota-foto-campo {
+  min-width: 0;
+}
+
+.campo-ajuda {
+  display: block;
+  margin-top: 6px;
+  color: #6f7178;
+  font-size: 10.5px;
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .grid-frota {
+    grid-template-columns: 1fr;
+  }
+
+  .card-frota-imagem-wrap {
+    height: 190px;
+  }
+
+  .card-frota:hover {
+    transform: none;
+  }
+
+  .frota-foto-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .frota-foto-preview-wrap {
+    width: 100%;
+    height: 170px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modulo-frota .cadastro-topo {
+    align-items: stretch;
+  }
+
+  .modulo-frota .btn-primario {
+    width: 100%;
+  }
+
+  .card-frota-imagem-wrap {
+    height: 166px;
+  }
+
+  .card-frota-conteudo {
+    padding: 15px;
+  }
+
+  .card-frota-medidor strong {
+    font-size: 21px;
+  }
+}
