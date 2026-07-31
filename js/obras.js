@@ -285,6 +285,31 @@ const ESTADOS_BR = [
   { sigla: "TO", nome: "Tocantins" },
 ];
 
+// Cidades por estado: Goiás já vem pronto (lista fixa, sem depender de
+// internet); os outros 26 estados são buscados na hora, na API pública
+// e oficial do IBGE, e ficam guardados em memória depois da 1ª busca.
+const cacheCidadesPorEstado = { GO: CIDADES_GOIAS };
+
+async function obterCidadesEstado(uf) {
+  if (cacheCidadesPorEstado[uf]) return cacheCidadesPorEstado[uf];
+  try {
+    const resp = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
+    const dados = await resp.json();
+    const nomes = dados.map(m => m.nome).sort((a, b) => a.localeCompare(b, "pt-BR"));
+    cacheCidadesPorEstado[uf] = nomes;
+    return nomes;
+  } catch (err) {
+    console.error("Não foi possível buscar as cidades do IBGE:", err);
+    return [];
+  }
+}
+
+function preencherDatalistCidades(lista) {
+  const datalist = document.getElementById("listaCidadesEstado");
+  if (!datalist) return;
+  datalist.innerHTML = lista.map(c => `<option value="${c}"></option>`).join("");
+}
+
 const STATUS_OBRA = [
   { valor: "ativa", rotulo: "Ativa" },
   { valor: "atencao", rotulo: "Atenção" },
@@ -521,9 +546,9 @@ async function abrirModalObra(id) {
           <div class="linha-campos">
             <div class="campo">
               <label>Cidade</label>
-              <input type="text" id="obraCidade" list="listaCidadesGoias" value="${escaparHtml(dados?.cidade)}" placeholder="Digite ou escolha...">
-              <datalist id="listaCidadesGoias">
-                ${CIDADES_GOIAS.map(c => `<option value="${c}"></option>`).join("")}
+              <input type="text" id="obraCidade" list="listaCidadesEstado" value="${escaparHtml(dados?.cidade)}" placeholder="Digite ou escolha...">
+              <datalist id="listaCidadesEstado">
+                ${(cacheCidadesPorEstado[dados?.estado || "GO"] || []).map(c => `<option value="${c}"></option>`).join("")}
               </datalist>
             </div>
             <div class="campo">
@@ -584,6 +609,16 @@ async function abrirModalObra(id) {
     e.preventDefault();
     await salvarObra(id);
   });
+
+  const selectEstado = document.getElementById("obraEstado");
+  selectEstado.addEventListener("change", async () => {
+    preencherDatalistCidades(await obterCidadesEstado(selectEstado.value));
+  });
+  // se a obra editada já é de um estado que ainda não buscamos, carrega agora
+  const estadoAtual = dados?.estado || "GO";
+  if (!cacheCidadesPorEstado[estadoAtual]) {
+    preencherDatalistCidades(await obterCidadesEstado(estadoAtual));
+  }
 }
 
 async function salvarObra(idExistente) {
