@@ -255,6 +255,36 @@ const CIDADES_GOIAS = [
   "Vila Propício"
 ];
 
+const ESTADOS_BR = [
+  { sigla: "AC", nome: "Acre" },
+  { sigla: "AL", nome: "Alagoas" },
+  { sigla: "AP", nome: "Amapá" },
+  { sigla: "AM", nome: "Amazonas" },
+  { sigla: "BA", nome: "Bahia" },
+  { sigla: "CE", nome: "Ceará" },
+  { sigla: "DF", nome: "Distrito Federal" },
+  { sigla: "ES", nome: "Espírito Santo" },
+  { sigla: "GO", nome: "Goiás" },
+  { sigla: "MA", nome: "Maranhão" },
+  { sigla: "MT", nome: "Mato Grosso" },
+  { sigla: "MS", nome: "Mato Grosso do Sul" },
+  { sigla: "MG", nome: "Minas Gerais" },
+  { sigla: "PA", nome: "Pará" },
+  { sigla: "PB", nome: "Paraíba" },
+  { sigla: "PR", nome: "Paraná" },
+  { sigla: "PE", nome: "Pernambuco" },
+  { sigla: "PI", nome: "Piauí" },
+  { sigla: "RJ", nome: "Rio de Janeiro" },
+  { sigla: "RN", nome: "Rio Grande do Norte" },
+  { sigla: "RS", nome: "Rio Grande do Sul" },
+  { sigla: "RO", nome: "Rondônia" },
+  { sigla: "RR", nome: "Roraima" },
+  { sigla: "SC", nome: "Santa Catarina" },
+  { sigla: "SP", nome: "São Paulo" },
+  { sigla: "SE", nome: "Sergipe" },
+  { sigla: "TO", nome: "Tocantins" },
+];
+
 const STATUS_OBRA = [
   { valor: "ativa", rotulo: "Ativa" },
   { valor: "atencao", rotulo: "Atenção" },
@@ -402,7 +432,7 @@ function renderizarListaObras() {
             </div>
           </div>
           <h3>${escaparHtml(o.nome) || "Sem nome"}</h3>
-          <p class="card-obra-info">${o.cliente ? escaparHtml(o.cliente) + " · " : ""}${escaparHtml(o.cidade) || "—"}</p>
+          <p class="card-obra-info">${o.cliente ? escaparHtml(o.cliente) + " · " : ""}${escaparHtml(o.cidade) || "—"}${o.estado ? " — " + escaparHtml(o.estado) : ""}</p>
           <div class="card-obra-rodape">
             <span>${escaparHtml(o._responsavelNome)}</span>
             <span>${formatarDataObra(o.dataInicio)}${o.previsaoTermino ? " → " + formatarDataObra(o.previsaoTermino) : ""}</span>
@@ -484,17 +514,23 @@ async function abrirModalObra(id) {
             <label>Nome da obra *</label>
             <input type="text" id="obraNome" value="${escaparHtml(dados?.nome)}" required>
           </div>
+          <div class="campo">
+            <label>Cliente</label>
+            <input type="text" id="obraCliente" value="${escaparHtml(dados?.cliente)}">
+          </div>
           <div class="linha-campos">
-            <div class="campo">
-              <label>Cliente</label>
-              <input type="text" id="obraCliente" value="${escaparHtml(dados?.cliente)}">
-            </div>
             <div class="campo">
               <label>Cidade</label>
               <input type="text" id="obraCidade" list="listaCidadesGoias" value="${escaparHtml(dados?.cidade)}" placeholder="Digite ou escolha...">
               <datalist id="listaCidadesGoias">
                 ${CIDADES_GOIAS.map(c => `<option value="${c}"></option>`).join("")}
               </datalist>
+            </div>
+            <div class="campo">
+              <label>Estado</label>
+              <select id="obraEstado">
+                ${ESTADOS_BR.map(e => `<option value="${e.sigla}" ${(dados?.estado || "GO") === e.sigla ? "selected" : ""}>${e.sigla} — ${e.nome}</option>`).join("")}
+              </select>
             </div>
           </div>
           <div class="campo">
@@ -565,6 +601,7 @@ async function salvarObra(idExistente) {
     nome,
     cliente: document.getElementById("obraCliente").value.trim(),
     cidade: document.getElementById("obraCidade").value.trim(),
+    estado: document.getElementById("obraEstado").value,
     endereco: document.getElementById("obraEndereco").value.trim(),
     responsavelId: document.getElementById("obraResponsavel").value,
     dataInicio: document.getElementById("obraInicio").value,
