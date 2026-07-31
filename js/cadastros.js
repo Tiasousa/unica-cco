@@ -104,6 +104,20 @@ function iconeX() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 }
 
+// Escapa texto antes de colocar em innerHTML, pra evitar que alguém
+// digite algo tipo <script> num campo de cadastro e isso seja executado
+// na tela de outra pessoa. Compartilhada por cadastros.js e obras.js —
+// frota.js e abastecimentos.js já têm a proteção equivalente própria.
+function escaparHtml(valor) {
+  if (valor === null || valor === undefined) return "";
+  return String(valor)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 async function renderCadastro(chave) {
   const config = CADASTROS_CONFIG[chave];
   const el = document.getElementById("areaPagina");
@@ -202,9 +216,9 @@ async function carregarTabelaCadastro(chave) {
         </thead>
         <tbody>
           ${itens.map(item => `
-            <tr data-busca="${String(item[config.campoPrincipal] || "").toLowerCase()}">
-              <td class="celula-principal">${item[config.campoPrincipal] || "—"}</td>
-              ${colsSecundarias.map(c => `<td>${formatarValorCampo(item, c)}</td>`).join("")}
+            <tr data-busca="${escaparHtml(String(item[config.campoPrincipal] || "").toLowerCase())}">
+              <td class="celula-principal">${escaparHtml(item[config.campoPrincipal]) || "—"}</td>
+              ${colsSecundarias.map(c => `<td>${escaparHtml(formatarValorCampo(item, c))}</td>`).join("")}
               <td>${item.ativo === false ? '<span class="badge parada">Inativo</span>' : '<span class="badge ativa">Ativo</span>'}</td>
               <td class="celula-acoes">
                 <button class="btn-icone" title="Editar" data-editar="${item.id}">${iconeLapis()}</button>
@@ -248,7 +262,7 @@ function renderCampoForm(campo, dados) {
         <label>${campo.label}</label>
         <select id="campo_${campo.id}">
           <option value="">Nenhum</option>
-          ${(campo._opcoes || []).map(o => `<option value="${o.id}" ${o.id === valorAtual ? "selected" : ""}>${o.nome}</option>`).join("")}
+          ${(campo._opcoes || []).map(o => `<option value="${o.id}" ${o.id === valorAtual ? "selected" : ""}>${escaparHtml(o.nome)}</option>`).join("")}
         </select>
       </div>`;
   }
@@ -266,13 +280,13 @@ function renderCampoForm(campo, dados) {
     return `
       <div class="campo">
         <label>${campo.label}</label>
-        <input type="number" id="campo_${campo.id}" value="${valorAtual}">
+        <input type="number" id="campo_${campo.id}" value="${escaparHtml(valorAtual)}">
       </div>`;
   }
   return `
     <div class="campo">
       <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
-      <input type="text" id="campo_${campo.id}" value="${valorAtual}" ${campo.obrigatorio ? "required" : ""}>
+      <input type="text" id="campo_${campo.id}" value="${escaparHtml(valorAtual)}" ${campo.obrigatorio ? "required" : ""}>
     </div>`;
 }
 
