@@ -1,14 +1,10 @@
 /* =========================================================
    ABASTECIMENTOS
    Única Construtora — Centro Operacional
+   Histórico, lançamento em lote, detalhes e cancelamento
    ========================================================= */
 
-
-/* =========================================================
-   CONFIGURAÇÃO DOS EQUIPAMENTOS
-   ========================================================= */
-
-const ABASTECIMENTO_CONFIG = {
+const ABAST_CONFIG = {
   maquinas: {
     colecao: "maquinas",
     tipo: "maquina",
@@ -31,30 +27,36 @@ const ABASTECIMENTO_CONFIG = {
 };
 
 
-/* =========================================================
-   ESTADO DO MÓDULO
-   ========================================================= */
-
-let abastecimentoEstado = criarEstadoAbastecimento();
+let abastEstado = criarEstadoAbastecimentos();
 
 
-function criarEstadoAbastecimento() {
+function criarEstadoAbastecimentos() {
   return {
+    tela: "historico",
+
     etapa: 1,
 
     obras: [],
 
     equipamentos: [],
 
+    abastecimentos: [],
+
     selecionados: new Set(),
 
     filtroTipo: "todos",
 
-    busca: "",
+    buscaEquipamento: "",
+
+    buscaHistorico: "",
+
+    obraFiltro: "",
+
+    periodoFiltro: "mes",
 
     dadosGerais: {
       obraId: "",
-      data: "",
+      data: dataHojeAbast(),
       responsavel: "",
     },
 
@@ -64,10 +66,10 @@ function criarEstadoAbastecimento() {
 
 
 /* =========================================================
-   FUNÇÕES AUXILIARES
+   UTILITÁRIOS
    ========================================================= */
 
-function abastEscaparHtml(valor) {
+function escAbast(valor) {
   return String(valor ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
@@ -77,7 +79,7 @@ function abastEscaparHtml(valor) {
 }
 
 
-function abastNormalizarTexto(valor) {
+function normAbast(valor) {
   return String(valor ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -86,11 +88,11 @@ function abastNormalizarTexto(valor) {
 }
 
 
-function abastConverterNumero(valor) {
+function numAbast(valor) {
   if (
-    valor === undefined ||
+    valor === "" ||
     valor === null ||
-    valor === ""
+    valor === undefined
   ) {
     return null;
   }
@@ -103,8 +105,8 @@ function abastConverterNumero(valor) {
 }
 
 
-function abastFormatarNumero(valor) {
-  const numero = abastConverterNumero(valor);
+function fmtNumeroAbast(valor) {
+  const numero = numAbast(valor);
 
   if (numero === null) {
     return "—";
@@ -117,146 +119,928 @@ function abastFormatarNumero(valor) {
 }
 
 
-function abastDataHoje() {
-  const agora = new Date();
+function dataHojeAbast() {
+  const hoje = new Date();
 
-  const ano = agora.getFullYear();
+  const ano = hoje.getFullYear();
 
   const mes = String(
-    agora.getMonth() + 1
+    hoje.getMonth() + 1
   ).padStart(2, "0");
 
   const dia = String(
-    agora.getDate()
+    hoje.getDate()
   ).padStart(2, "0");
 
   return `${ano}-${mes}-${dia}`;
 }
 
 
-function abastFormatarData(dataIso) {
+function dataLocalAbast(dataIso) {
   if (!dataIso) {
+    return null;
+  }
+
+  const partes = String(dataIso)
+    .split("-")
+    .map(Number);
+
+  if (
+    partes.length !== 3 ||
+    partes.some((parte) => !Number.isFinite(parte))
+  ) {
+    return null;
+  }
+
+  return new Date(
+    partes[0],
+    partes[1] - 1,
+    partes[2],
+    12,
+    0,
+    0
+  );
+}
+
+
+function fmtDataAbast(dataIso) {
+  const data = dataLocalAbast(dataIso);
+
+  if (!data) {
     return "—";
   }
 
-  const partes = dataIso.split("-");
-
-  if (partes.length !== 3) {
-    return dataIso;
-  }
-
-  const [ano, mes, dia] = partes;
-
-  return `${dia}/${mes}/${ano}`;
+  return new Intl.DateTimeFormat(
+    "pt-BR"
+  ).format(data);
 }
 
 
-function abastObterUsuarioAtual() {
-  const elementoNome = document.getElementById(
-    "usuarioNome"
-  );
-
+function usuarioAtualAbast() {
   const nome =
-    elementoNome?.textContent?.trim() || "";
+    document
+      .getElementById("usuarioNome")
+      ?.textContent
+      ?.trim() || "";
 
   if (
-    !nome ||
-    nome === "—" ||
-    nome === "Usuário"
+    nome &&
+    nome !== "—" &&
+    nome !== "Usuário"
   ) {
-    return "";
+    return nome;
   }
 
-  return nome;
+  return "";
 }
 
 
-function abastChaveEquipamento(equipamento) {
-  return `${equipamento.colecao}:${equipamento.id}`;
+function chaveEquipAbast(item) {
+  return `${item.colecao}:${item.id}`;
 }
 
 
-function abastObterAreaPagina() {
-  return document.getElementById(
-    "areaPagina"
+function verificarFirebaseAbast() {
+  if (
+    !window.firebaseDb ||
+    !window.fs
+  ) {
+    throw new Error(
+      "O Firebase ainda não foi inicializado."
+    );
+  }
+}
+
+
+function statusCanceladoAbast(registro) {
+  return (
+    registro.ativo === false ||
+    registro.status === "cancelado"
   );
 }
 
 
-function abastVerificarFirebase() {
-  if (!window.firebaseDb) {
-    throw new Error(
-      "O banco de dados Firebase ainda não foi inicializado."
-    );
+function itensRegistroAbast(registro) {
+  return Array.isArray(registro.itens)
+    ? registro.itens
+    : [];
+}
+
+
+function totalLitrosRegistroAbast(registro) {
+  const totalSalvo =
+    numAbast(registro.totalLitros);
+
+  if (totalSalvo !== null) {
+    return totalSalvo;
   }
 
-  if (!window.fs) {
-    throw new Error(
-      "As funções do Firestore ainda não estão disponíveis."
-    );
-  }
+  return itensRegistroAbast(registro)
+    .reduce((soma, item) => {
+      return (
+        soma +
+        (numAbast(item.litros) || 0)
+      );
+    }, 0);
 }
 
 
 /* =========================================================
-   ÍCONES
+   ESTILOS EXCLUSIVOS DO MÓDULO
    ========================================================= */
 
-function abastIconeMaquina() {
-  return `
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.7"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M3 17h13"></path>
-      <path d="M5 17V9h8l3 4v4"></path>
-      <path d="M13 9V5h4l3 4"></path>
-      <circle cx="7" cy="19" r="2"></circle>
-      <circle cx="15" cy="19" r="2"></circle>
-    </svg>
+function injetarEstilosAbastecimentos() {
+  if (
+    document.getElementById(
+      "estilosAbastecimentosV2"
+    )
+  ) {
+    return;
+  }
+
+  const style =
+    document.createElement("style");
+
+  style.id =
+    "estilosAbastecimentosV2";
+
+  style.textContent = `
+    .abast-modulo {
+      padding-bottom: 96px;
+    }
+
+    .abast-topo {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .abast-topo h2 {
+      font-size: 21px;
+      margin-bottom: 5px;
+    }
+
+    .abast-topo p {
+      color: #85857f;
+      font-size: 12.5px;
+    }
+
+    .abast-acoes-topo {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .abast-resumo-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .abast-resumo-card {
+      background: var(--preto-card);
+      border: 1px solid var(--borda-card);
+      border-left: 3px solid var(--amarelo);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    .abast-resumo-card span {
+      display: block;
+      color: #777771;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      margin-bottom: 9px;
+    }
+
+    .abast-resumo-card strong {
+      font-size: 23px;
+      line-height: 1;
+    }
+
+    .abast-resumo-card small {
+      color: #8b8b85;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+
+    .abast-filtros-historico {
+      display: grid;
+      grid-template-columns:
+        minmax(220px, 1fr)
+        minmax(180px, 0.55fr)
+        minmax(160px, 0.45fr);
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .abast-filtros-historico input,
+    .abast-filtros-historico select {
+      width: 100%;
+      min-height: 42px;
+      background: var(--preto-card);
+      border: 1px solid var(--borda-card);
+      color: var(--branco);
+      border-radius: var(--radius-sm);
+      padding: 10px 13px;
+      font-size: 13px;
+    }
+
+    .abast-historico-lista {
+      display: grid;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .abast-historico-card {
+      position: relative;
+      background: var(--preto-card);
+      border: 1px solid var(--borda-card);
+      border-radius: var(--radius);
+      padding: 17px;
+      text-align: left;
+      color: var(--branco);
+      transition:
+        transform var(--transicao),
+        border-color var(--transicao);
+    }
+
+    .abast-historico-card:hover {
+      transform: translateY(-1px);
+      border-color: #3a3b40;
+    }
+
+    .abast-historico-card.cancelado {
+      opacity: 0.62;
+      border-left: 3px solid var(--perigo);
+    }
+
+    .abast-historico-topo {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 13px;
+    }
+
+    .abast-historico-data {
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .abast-status {
+      font-size: 9.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      border-radius: 999px;
+      padding: 4px 8px;
+      color: var(--sucesso);
+      border: 1px solid
+        rgba(52, 199, 123, 0.35);
+      background:
+        rgba(52, 199, 123, 0.07);
+    }
+
+    .abast-status.cancelado {
+      color: #ff9c9c;
+      border-color:
+        rgba(239, 68, 68, 0.35);
+      background:
+        rgba(239, 68, 68, 0.07);
+    }
+
+    .abast-historico-obra {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .abast-historico-responsavel {
+      display: block;
+      color: #85857f;
+      font-size: 11.5px;
+      margin-bottom: 14px;
+    }
+
+    .abast-historico-rodape {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      padding-top: 12px;
+      border-top:
+        1px solid var(--borda-suave);
+    }
+
+    .abast-historico-rodape span {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      color: #70716b;
+      font-size: 10px;
+    }
+
+    .abast-historico-rodape strong {
+      color: var(--branco);
+      font-size: 13px;
+    }
+
+    .abast-vazio {
+      padding: 55px 20px;
+      text-align: center;
+      color: #777771;
+      background: var(--preto-card);
+      border: 1px dashed #303136;
+      border-radius: var(--radius);
+    }
+
+    .abast-dados-gerais {
+      display: grid;
+      grid-template-columns:
+        minmax(220px, 1.4fr)
+        minmax(160px, 0.65fr)
+        minmax(220px, 1fr);
+      gap: 14px;
+      padding: 18px;
+      margin-bottom: 18px;
+      background: var(--preto-card);
+      border: 1px solid var(--borda-card);
+      border-radius: var(--radius);
+    }
+
+    .abast-dados-gerais .campo,
+    .abast-campos-lancamento .campo {
+      margin-bottom: 0;
+    }
+
+    .abast-dados-gerais input,
+    .abast-dados-gerais select,
+    .abast-campos-lancamento input {
+      width: 100%;
+      min-height: 44px;
+      background: #141414;
+      border: 1px solid #2e2e2e;
+      color: var(--branco);
+      border-radius: var(--radius-sm);
+      padding: 11px 13px;
+      font-size: 14px;
+    }
+
+    .abast-selecao-topo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .abast-busca {
+      flex: 1;
+    }
+
+    .abast-grid-equipamentos {
+      display: grid;
+      grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .abast-card-equipamento {
+      position: relative;
+      min-height: 155px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 16px;
+      text-align: left;
+      color: var(--branco);
+      background: var(--preto-card);
+      border: 1px solid var(--borda-card);
+      border-radius: var(--radius);
+    }
+
+    .abast-card-equipamento.selecionado {
+      background:
+        linear-gradient(
+          145deg,
+          rgba(52, 199, 123, 0.13),
+          rgba(52, 199, 123, 0.035)
+        );
+      border-color: var(--sucesso);
+    }
+
+    .abast-card-check {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: transparent;
+      background: #18191c;
+      border: 1px solid #34353a;
+      border-radius: 50%;
+      font-weight: 900;
+    }
+
+    .abast-card-equipamento.selecionado
+    .abast-card-check {
+      color: #07150d;
+      background: var(--sucesso);
+      border-color: var(--sucesso);
+    }
+
+    .abast-card-tipo {
+      margin-bottom: 14px;
+      color: #777871;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .abast-card-equipamento strong {
+      max-width: calc(100% - 28px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 14px;
+    }
+
+    .abast-card-identificacao {
+      color: #969690;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .abast-card-medidor {
+      width: 100%;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 12px;
+      margin-top: auto;
+      border-top:
+        1px solid var(--borda-suave);
+    }
+
+    .abast-card-medidor small {
+      color: #686963;
+      font-size: 10px;
+    }
+
+    .abast-card-medidor b {
+      font-size: 12.5px;
+    }
+
+    .abast-barra-acao {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: var(--sidebar-w);
+      z-index: 29;
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 32px;
+      background:
+        rgba(13, 14, 16, 0.96);
+      border-top: 1px solid #292a2e;
+      backdrop-filter: blur(10px);
+    }
+
+    .sidebar.recolhida
+    ~ .btn-recolher
+    ~ .conteudo
+    .abast-barra-acao {
+      left: var(--sidebar-w-collapsed);
+    }
+
+    .abast-barra-acao div {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .abast-barra-acao span {
+      color: #777771;
+      font-size: 11px;
+    }
+
+    .abast-resumo-lancamento {
+      display: grid;
+      grid-template-columns:
+        repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .abast-resumo-lancamento > div {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 13px 15px;
+      background: #101114;
+      border: 1px solid var(--borda-card);
+      border-radius: var(--radius-sm);
+    }
+
+    .abast-resumo-lancamento span {
+      color: #72736e;
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    .abast-resumo-lancamento strong {
+      font-size: 13px;
+    }
+
+    .abast-lista-lancamentos {
+      display: grid;
+      gap: 11px;
+    }
+
+    .abast-item-lancamento {
+      padding: 17px;
+      background: var(--preto-card);
+      border: 1px solid var(--borda-card);
+      border-left: 3px solid var(--sucesso);
+      border-radius: var(--radius);
+    }
+
+    .abast-item-cabecalho {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .abast-item-cabecalho span {
+      display: block;
+      color: #7d7d77;
+      font-size: 10px;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .abast-item-cabecalho h3 {
+      font-size: 15px;
+    }
+
+    .abast-medidor-anterior {
+      text-align: right;
+    }
+
+    .abast-campos-lancamento {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .abast-erro {
+      min-height: 18px;
+      margin-top: 12px;
+      color: #ff9c9c;
+      font-size: 12.5px;
+    }
+
+    .abast-acoes-finais {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 16px;
+    }
+
+    .abast-modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 120;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(0, 0, 0, 0.72);
+    }
+
+    .abast-modal {
+      width: 100%;
+      max-width: 620px;
+      max-height: 90vh;
+      overflow: auto;
+      background: var(--preto-card);
+      border: 1px solid #303136;
+      border-radius: 14px;
+      padding: 22px;
+    }
+
+    .abast-modal-topo {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .abast-modal-topo h3 {
+      font-size: 17px;
+    }
+
+    .abast-modal-fechar {
+      width: 32px;
+      height: 32px;
+      background: transparent;
+      border: 1px solid var(--borda-card);
+      color: #aaa;
+      border-radius: 8px;
+    }
+
+    .abast-detalhe-resumo {
+      display: grid;
+      grid-template-columns:
+        repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .abast-detalhe-resumo div {
+      padding: 11px;
+      background: #101114;
+      border: 1px solid var(--borda-suave);
+      border-radius: 8px;
+    }
+
+    .abast-detalhe-resumo span {
+      display: block;
+      color: #71716c;
+      font-size: 9px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .abast-detalhe-resumo strong {
+      font-size: 12px;
+    }
+
+    .abast-detalhe-itens {
+      display: grid;
+      gap: 9px;
+    }
+
+    .abast-detalhe-item {
+      padding: 13px;
+      background: #101114;
+      border: 1px solid var(--borda-suave);
+      border-radius: 9px;
+    }
+
+    .abast-detalhe-item-topo {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+
+    .abast-detalhe-item-topo strong {
+      font-size: 13px;
+    }
+
+    .abast-detalhe-item-topo span {
+      color: var(--amarelo);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .abast-detalhe-medidor {
+      color: #898983;
+      font-size: 11.5px;
+    }
+
+    .abast-modal-acoes {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      margin-top: 18px;
+      padding-top: 15px;
+      border-top:
+        1px solid var(--borda-suave);
+    }
+
+    .abast-btn-perigo {
+      background:
+        rgba(239, 68, 68, 0.09);
+      border: 1px solid
+        rgba(239, 68, 68, 0.35);
+      color: #ff9c9c;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-weight: 700;
+    }
+
+    .abast-sucesso {
+      min-height: 360px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .abast-sucesso-icone {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--sucesso);
+      color: #07150d;
+      border-radius: 50%;
+      font-size: 26px;
+      font-weight: 900;
+      margin-bottom: 16px;
+    }
+
+    .abast-sucesso p {
+      color: #8b8b85;
+      font-size: 13px;
+      margin: 8px 0 20px;
+    }
+
+    .abast-cancelado-info {
+      color: #ff9c9c;
+      font-size: 11px;
+      margin-top: 8px;
+    }
+
+    .abast-carregando {
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #777771;
+    }
+
+    .abast-confirmacao {
+      padding: 15px;
+      background:
+        rgba(239, 68, 68, 0.06);
+      border: 1px solid
+        rgba(239, 68, 68, 0.25);
+      border-radius: 9px;
+      color: #d8d8d3;
+      font-size: 12.5px;
+      line-height: 1.5;
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 1180px) {
+      .abast-grid-equipamentos {
+        grid-template-columns:
+          repeat(3, minmax(0, 1fr));
+      }
+
+      .abast-resumo-grid {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 860px) {
+      .abast-historico-lista {
+        grid-template-columns: 1fr;
+      }
+
+      .abast-filtros-historico {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .abast-filtros-historico input {
+        grid-column: 1 / -1;
+      }
+
+      .abast-dados-gerais {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .abast-dados-gerais
+      .campo:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .abast-selecao-topo {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .abast-grid-equipamentos {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+
+      .abast-barra-acao {
+        left: 0;
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .abast-topo {
+        flex-direction: column;
+      }
+
+      .abast-acoes-topo {
+        width: 100%;
+      }
+
+      .abast-acoes-topo button {
+        flex: 1;
+      }
+
+      .abast-resumo-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .abast-resumo-card {
+        padding: 13px;
+      }
+
+      .abast-resumo-card strong {
+        font-size: 19px;
+      }
+
+      .abast-filtros-historico {
+        grid-template-columns: 1fr;
+      }
+
+      .abast-filtros-historico input {
+        grid-column: auto;
+      }
+
+      .abast-dados-gerais,
+      .abast-resumo-lancamento,
+      .abast-campos-lancamento,
+      .abast-detalhe-resumo {
+        grid-template-columns: 1fr;
+      }
+
+      .abast-dados-gerais
+      .campo:first-child {
+        grid-column: auto;
+      }
+
+      .abast-grid-equipamentos {
+        gap: 8px;
+      }
+
+      .abast-card-equipamento {
+        min-height: 145px;
+        padding: 13px;
+      }
+
+      .abast-barra-acao span {
+        display: none;
+      }
+
+      .abast-item-cabecalho {
+        flex-direction: column;
+      }
+
+      .abast-medidor-anterior {
+        text-align: left;
+      }
+
+      .abast-acoes-finais,
+      .abast-modal-acoes {
+        flex-direction: column-reverse;
+      }
+
+      .abast-acoes-finais button,
+      .abast-modal-acoes button {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 370px) {
+      .abast-grid-equipamentos,
+      .abast-resumo-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   `;
-}
 
-
-function abastIconeCaminhao() {
-  return `
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="1.7"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="2" y="6" width="13" height="10" rx="1.5"></rect>
-      <path d="M15 9h4l3 3v4h-7z"></path>
-      <circle cx="6" cy="18" r="2"></circle>
-      <circle cx="18" cy="18" r="2"></circle>
-    </svg>
-  `;
-}
-
-
-function abastIconeCheck() {
-  return `
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2.5"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M5 12l4 4L19 6"></path>
-    </svg>
-  `;
+  document.head.appendChild(style);
 }
 
 
@@ -265,55 +1049,22 @@ function abastIconeCheck() {
    ========================================================= */
 
 async function renderAbastecimentos() {
-  const area = abastObterAreaPagina();
+  injetarEstilosAbastecimentos();
+
+  const area =
+    document.getElementById(
+      "areaPagina"
+    );
 
   if (!area) {
     return;
   }
 
-  abastecimentoEstado =
-    criarEstadoAbastecimento();
+  abastEstado =
+    criarEstadoAbastecimentos();
 
   area.innerHTML = `
-    <section class="modulo-abastecimentos">
-
-      <div class="abast-cabecalho-interno">
-
-        <div>
-          <span class="abast-eyebrow">
-            Novo lançamento
-          </span>
-
-          <h2>
-            Registrar abastecimento
-          </h2>
-
-          <p>
-            Selecione a obra e marque os equipamentos abastecidos.
-          </p>
-        </div>
-
-        <div
-          class="abast-etapas"
-          aria-label="Etapas do abastecimento"
-        >
-          <span
-            class="ativo"
-            data-abast-indicador="1"
-          >
-            1
-          </span>
-
-          <i></i>
-
-          <span
-            data-abast-indicador="2"
-          >
-            2
-          </span>
-        </div>
-
-      </div>
+    <section class="abast-modulo">
 
       <div id="abastConteudo">
 
@@ -325,7 +1076,7 @@ async function renderAbastecimentos() {
           ></div>
 
           <p>
-            Carregando obras e equipamentos...
+            Carregando abastecimentos...
           </p>
 
         </div>
@@ -336,22 +1087,21 @@ async function renderAbastecimentos() {
   `;
 
   try {
-    await abastCarregarDados();
+    await carregarBaseAbastecimentos();
 
-    abastRenderEtapaSelecao();
+    renderHistoricoAbastecimentos();
 
   } catch (erro) {
     console.error(
-      "Erro ao carregar o módulo de abastecimentos:",
+      "Erro no módulo de abastecimentos:",
       erro
     );
 
-    abastRenderErroCarregamento(erro);
+    renderErroAbastecimentos(erro);
   }
 }
 
 
-/* Disponibiliza a função para o nav.js */
 window.renderAbastecimentos =
   renderAbastecimentos;
 
@@ -360,8 +1110,8 @@ window.renderAbastecimentos =
    CARREGAMENTO DOS DADOS
    ========================================================= */
 
-async function abastCarregarDados() {
-  abastVerificarFirebase();
+async function carregarBaseAbastecimentos() {
+  verificarFirebaseAbast();
 
   const {
     collection,
@@ -369,9 +1119,10 @@ async function abastCarregarDados() {
   } = window.fs;
 
   const [
-    snapshotObras,
-    snapshotMaquinas,
-    snapshotCaminhoes,
+    snapObras,
+    snapMaquinas,
+    snapCaminhoes,
+    snapAbastecimentos,
   ] = await Promise.all([
     getDocs(
       collection(
@@ -393,73 +1144,99 @@ async function abastCarregarDados() {
         "caminhoes"
       )
     ),
+
+    getDocs(
+      collection(
+        window.firebaseDb,
+        "abastecimentos"
+      )
+    ),
   ]);
 
-  abastecimentoEstado.obras = [];
+  abastEstado.obras = [];
 
-  snapshotObras.forEach((documento) => {
+  snapObras.forEach((documento) => {
     const dados = documento.data();
 
     if (dados.ativo === false) {
       return;
     }
 
-    abastecimentoEstado.obras.push({
+    abastEstado.obras.push({
       id: documento.id,
       ...dados,
     });
   });
 
-  abastecimentoEstado.obras.sort(
-    (a, b) => {
-      const nomeA =
-        a.nome ||
-        a.titulo ||
-        "";
-
-      const nomeB =
+  abastEstado.obras.sort((a, b) => {
+    return String(
+      a.nome ||
+      a.titulo ||
+      ""
+    ).localeCompare(
+      String(
         b.nome ||
         b.titulo ||
-        "";
+        ""
+      ),
+      "pt-BR"
+    );
+  });
 
-      return String(nomeA).localeCompare(
-        String(nomeB),
+  abastEstado.equipamentos = [];
+
+  adicionarSnapshotEquipamentos(
+    snapMaquinas,
+    "maquinas"
+  );
+
+  adicionarSnapshotEquipamentos(
+    snapCaminhoes,
+    "caminhoes"
+  );
+
+  abastEstado.equipamentos.sort(
+    (a, b) => {
+      return String(
+        a.nome
+      ).localeCompare(
+        String(b.nome),
         "pt-BR"
       );
     }
   );
 
-  abastecimentoEstado.equipamentos = [];
+  abastEstado.abastecimentos = [];
 
-  abastAdicionarEquipamentos(
-    snapshotMaquinas,
-    "maquinas"
+  snapAbastecimentos.forEach(
+    (documento) => {
+      abastEstado
+        .abastecimentos
+        .push({
+          id: documento.id,
+          ...documento.data(),
+        });
+    }
   );
 
-  abastAdicionarEquipamentos(
-    snapshotCaminhoes,
-    "caminhoes"
-  );
-
-  abastecimentoEstado.equipamentos.sort(
+  abastEstado.abastecimentos.sort(
     (a, b) => {
       return String(
-        a.nome || ""
+        b.data || ""
       ).localeCompare(
-        String(b.nome || ""),
-        "pt-BR"
+        String(a.data || "")
       );
     }
   );
 }
 
 
-function abastAdicionarEquipamentos(
+function adicionarSnapshotEquipamentos(
   snapshot,
   chaveConfig
 ) {
   const config =
-    ABASTECIMENTO_CONFIG[chaveConfig];
+    ABAST_CONFIG[chaveConfig];
 
   snapshot.forEach((documento) => {
     const dados = documento.data();
@@ -468,14 +1245,17 @@ function abastAdicionarEquipamentos(
       return;
     }
 
-    abastecimentoEstado.equipamentos.push({
+    abastEstado.equipamentos.push({
       id: documento.id,
 
-      colecao: config.colecao,
+      colecao:
+        config.colecao,
 
-      tipo: config.tipo,
+      tipo:
+        config.tipo,
 
-      tipoRotulo: config.tipoRotulo,
+      tipoRotulo:
+        config.tipoRotulo,
 
       nome:
         dados.nome ||
@@ -488,7 +1268,7 @@ function abastAdicionarEquipamentos(
         "Sem identificação",
 
       medidorAtual:
-        abastConverterNumero(
+        numAbast(
           dados[
             config.campoMedidor
           ]
@@ -512,41 +1292,1151 @@ function abastAdicionarEquipamentos(
 
 
 /* =========================================================
-   ETAPA 1 — SELEÇÃO DOS EQUIPAMENTOS
+   HISTÓRICO E DASHBOARD
    ========================================================= */
 
-function abastRenderEtapaSelecao() {
-  abastecimentoEstado.etapa = 1;
+function renderHistoricoAbastecimentos() {
+  abastEstado.tela = "historico";
 
-  abastAtualizarIndicadorEtapa();
-
-  const conteudo = document.getElementById(
-    "abastConteudo"
-  );
+  const conteudo =
+    document.getElementById(
+      "abastConteudo"
+    );
 
   if (!conteudo) {
     return;
   }
 
-  const responsavelSalvo =
-    abastecimentoEstado.dadosGerais
-      .responsavel ||
-    abastObterUsuarioAtual();
+  conteudo.innerHTML = `
+    <div class="abast-topo">
 
-  const dataSalva =
-    abastecimentoEstado.dadosGerais
-      .data ||
-    abastDataHoje();
+      <div>
 
-  const obraSalva =
-    abastecimentoEstado.dadosGerais
-      .obraId ||
+        <h2>
+          Abastecimentos
+        </h2>
+
+        <p>
+          Histórico, consumo e novos lançamentos.
+        </p>
+
+      </div>
+
+      <div class="abast-acoes-topo">
+
+        <button
+          type="button"
+          class="btn-primario"
+          id="btnNovoAbast"
+        >
+          + Novo abastecimento
+        </button>
+
+      </div>
+
+    </div>
+
+    <div
+      class="abast-resumo-grid"
+      id="abastResumoGrid"
+    ></div>
+
+    <div class="abast-filtros-historico">
+
+      <input
+        type="search"
+        id="abastBuscaHistorico"
+        placeholder="Pesquisar obra, responsável ou equipamento..."
+        autocomplete="off"
+      >
+
+      <select id="abastObraFiltro">
+
+        <option value="">
+          Todas as obras
+        </option>
+
+        ${abastEstado.obras
+          .map((obra) => {
+            return `
+              <option
+                value="${escAbast(obra.id)}"
+              >
+                ${escAbast(
+                  obra.nome ||
+                  obra.titulo ||
+                  "Obra sem nome"
+                )}
+              </option>
+            `;
+          })
+          .join("")}
+
+      </select>
+
+      <select id="abastPeriodoFiltro">
+
+        <option value="mes">
+          Este mês
+        </option>
+
+        <option value="semana">
+          Esta semana
+        </option>
+
+        <option value="hoje">
+          Hoje
+        </option>
+
+        <option value="todos">
+          Todo o período
+        </option>
+
+      </select>
+
+    </div>
+
+    <div id="abastHistoricoLista"></div>
+  `;
+
+  document
+    .getElementById("btnNovoAbast")
+    ?.addEventListener(
+      "click",
+      iniciarNovoAbastecimento
+    );
+
+  document
+    .getElementById(
+      "abastBuscaHistorico"
+    )
+    ?.addEventListener(
+      "input",
+      (evento) => {
+        abastEstado.buscaHistorico =
+          evento.target.value;
+
+        atualizarHistoricoAbastecimentos();
+      }
+    );
+
+  document
+    .getElementById(
+      "abastObraFiltro"
+    )
+    ?.addEventListener(
+      "change",
+      (evento) => {
+        abastEstado.obraFiltro =
+          evento.target.value;
+
+        atualizarHistoricoAbastecimentos();
+      }
+    );
+
+  document
+    .getElementById(
+      "abastPeriodoFiltro"
+    )
+    ?.addEventListener(
+      "change",
+      (evento) => {
+        abastEstado.periodoFiltro =
+          evento.target.value;
+
+        atualizarHistoricoAbastecimentos();
+      }
+    );
+
+  atualizarHistoricoAbastecimentos();
+}
+
+
+function registroNoPeriodoAbast(
+  registro,
+  periodo
+) {
+  if (periodo === "todos") {
+    return true;
+  }
+
+  const data =
+    dataLocalAbast(registro.data);
+
+  if (!data) {
+    return false;
+  }
+
+  const hoje = new Date();
+
+  hoje.setHours(
+    12,
+    0,
+    0,
+    0
+  );
+
+  if (periodo === "hoje") {
+    return (
+      data.toDateString() ===
+      hoje.toDateString()
+    );
+  }
+
+  if (periodo === "semana") {
+    const inicio =
+      new Date(hoje);
+
+    const diaSemana =
+      inicio.getDay();
+
+    const deslocamento =
+      diaSemana === 0
+        ? -6
+        : 1 - diaSemana;
+
+    inicio.setDate(
+      inicio.getDate() +
+      deslocamento
+    );
+
+    const fim =
+      new Date(inicio);
+
+    fim.setDate(
+      fim.getDate() + 6
+    );
+
+    return (
+      data >= inicio &&
+      data <= fim
+    );
+  }
+
+  return (
+    data.getFullYear() ===
+      hoje.getFullYear() &&
+    data.getMonth() ===
+      hoje.getMonth()
+  );
+}
+
+
+function abastecimentosFiltrados() {
+  const busca =
+    normAbast(
+      abastEstado.buscaHistorico
+    );
+
+  return abastEstado
+    .abastecimentos
+    .filter((registro) => {
+      if (
+        abastEstado.obraFiltro &&
+        registro.obraId !==
+          abastEstado.obraFiltro
+      ) {
+        return false;
+      }
+
+      if (
+        !registroNoPeriodoAbast(
+          registro,
+          abastEstado.periodoFiltro
+        )
+      ) {
+        return false;
+      }
+
+      if (!busca) {
+        return true;
+      }
+
+      const textoItens =
+        itensRegistroAbast(registro)
+          .map((item) => {
+            return `
+              ${item.nomeEquipamento || ""}
+              ${item.identificacao || ""}
+            `;
+          })
+          .join(" ");
+
+      const texto =
+        normAbast(`
+          ${registro.obraNome || ""}
+          ${registro.responsavel || ""}
+          ${textoItens}
+        `);
+
+      return texto.includes(busca);
+    });
+}
+
+
+function calcularResumoAbast() {
+  const ativos =
+    abastEstado.abastecimentos
+      .filter((registro) => {
+        return !statusCanceladoAbast(
+          registro
+        );
+      });
+
+  const litros = (periodo) => {
+    return ativos
+      .filter((registro) => {
+        return registroNoPeriodoAbast(
+          registro,
+          periodo
+        );
+      })
+      .reduce((soma, registro) => {
+        return (
+          soma +
+          totalLitrosRegistroAbast(
+            registro
+          )
+        );
+      }, 0);
+  };
+
+  return {
+    hoje:
+      litros("hoje"),
+
+    semana:
+      litros("semana"),
+
+    mes:
+      litros("mes"),
+
+    lancamentos:
+      ativos.filter((registro) => {
+        return registroNoPeriodoAbast(
+          registro,
+          "mes"
+        );
+      }).length,
+  };
+}
+
+
+function atualizarHistoricoAbastecimentos() {
+  const resumo =
+    calcularResumoAbast();
+
+  const resumoGrid =
+    document.getElementById(
+      "abastResumoGrid"
+    );
+
+  if (resumoGrid) {
+    resumoGrid.innerHTML = `
+      ${cardResumoAbast(
+        "Hoje",
+        resumo.hoje,
+        "L"
+      )}
+
+      ${cardResumoAbast(
+        "Semana",
+        resumo.semana,
+        "L"
+      )}
+
+      ${cardResumoAbast(
+        "Mês",
+        resumo.mes,
+        "L"
+      )}
+
+      ${cardResumoAbast(
+        "Lançamentos",
+        resumo.lancamentos,
+        "no mês"
+      )}
+    `;
+  }
+
+  const lista =
+    document.getElementById(
+      "abastHistoricoLista"
+    );
+
+  if (!lista) {
+    return;
+  }
+
+  const registros =
+    abastecimentosFiltrados();
+
+  if (registros.length === 0) {
+    lista.innerHTML = `
+      <div class="abast-vazio">
+
+        <strong>
+          Nenhum abastecimento encontrado.
+        </strong>
+
+        <br><br>
+
+        Use o botão “Novo abastecimento”
+        para fazer o primeiro lançamento.
+
+      </div>
+    `;
+
+    return;
+  }
+
+  lista.innerHTML = `
+    <div class="abast-historico-lista">
+
+      ${registros
+        .map((registro) => {
+          const cancelado =
+            statusCanceladoAbast(
+              registro
+            );
+
+          const quantidadeSalva =
+            numAbast(
+              registro
+                .quantidadeEquipamentos
+            );
+
+          const quantidade =
+            quantidadeSalva !== null
+              ? quantidadeSalva
+              : itensRegistroAbast(
+                  registro
+                ).length;
+
+          return `
+            <button
+              type="button"
+              class="abast-historico-card ${
+                cancelado
+                  ? "cancelado"
+                  : ""
+              }"
+              data-abast-detalhe="${escAbast(
+                registro.id
+              )}"
+            >
+
+              <div class="abast-historico-topo">
+
+                <span class="abast-historico-data">
+                  ${escAbast(
+                    fmtDataAbast(
+                      registro.data
+                    )
+                  )}
+                </span>
+
+                <span
+                  class="abast-status ${
+                    cancelado
+                      ? "cancelado"
+                      : ""
+                  }"
+                >
+                  ${
+                    cancelado
+                      ? "Cancelado"
+                      : "Ativo"
+                  }
+                </span>
+
+              </div>
+
+              <strong class="abast-historico-obra">
+                ${escAbast(
+                  registro.obraNome ||
+                  "Obra não informada"
+                )}
+              </strong>
+
+              <span class="abast-historico-responsavel">
+                Responsável:
+                ${escAbast(
+                  registro.responsavel ||
+                  "Não informado"
+                )}
+              </span>
+
+              <div class="abast-historico-rodape">
+
+                <span>
+                  Equipamentos
+
+                  <strong>
+                    ${quantidade}
+                  </strong>
+                </span>
+
+                <span>
+                  Total abastecido
+
+                  <strong>
+                    ${fmtNumeroAbast(
+                      totalLitrosRegistroAbast(
+                        registro
+                      )
+                    )} L
+                  </strong>
+                </span>
+
+              </div>
+
+            </button>
+          `;
+        })
+        .join("")}
+
+    </div>
+  `;
+
+  lista
+    .querySelectorAll(
+      "[data-abast-detalhe]"
+    )
+    .forEach((card) => {
+      card.addEventListener(
+        "click",
+        () => {
+          abrirDetalhesAbastecimento(
+            card.dataset.abastDetalhe
+          );
+        }
+      );
+    });
+}
+
+
+function cardResumoAbast(
+  rotulo,
+  valor,
+  unidade
+) {
+  return `
+    <div class="abast-resumo-card">
+
+      <span>
+        ${escAbast(rotulo)}
+      </span>
+
+      <strong>
+        ${fmtNumeroAbast(valor)}
+      </strong>
+
+      <small>
+        ${escAbast(unidade)}
+      </small>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   DETALHES DO ABASTECIMENTO
+   ========================================================= */
+
+function abrirDetalhesAbastecimento(id) {
+  const registro =
+    abastEstado
+      .abastecimentos
+      .find((item) => {
+        return item.id === id;
+      });
+
+  if (!registro) {
+    return;
+  }
+
+  fecharModalAbast();
+
+  const cancelado =
+    statusCanceladoAbast(registro);
+
+  const overlay =
+    document.createElement("div");
+
+  overlay.className =
+    "abast-modal-overlay";
+
+  overlay.id =
+    "abastModalOverlay";
+
+  overlay.innerHTML = `
+    <div
+      class="abast-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Detalhes do abastecimento"
+    >
+
+      <div class="abast-modal-topo">
+
+        <div>
+
+          <h3>
+            Detalhes do abastecimento
+          </h3>
+
+          <p
+            style="
+              color:#7d7d77;
+              font-size:11.5px;
+              margin-top:4px;
+            "
+          >
+            ${escAbast(
+              fmtDataAbast(
+                registro.data
+              )
+            )}
+          </p>
+
+        </div>
+
+        <button
+          type="button"
+          class="abast-modal-fechar"
+          data-fechar-abast
+        >
+          ×
+        </button>
+
+      </div>
+
+      <div class="abast-detalhe-resumo">
+
+        <div>
+
+          <span>
+            Obra
+          </span>
+
+          <strong>
+            ${escAbast(
+              registro.obraNome ||
+              "—"
+            )}
+          </strong>
+
+        </div>
+
+        <div>
+
+          <span>
+            Responsável
+          </span>
+
+          <strong>
+            ${escAbast(
+              registro.responsavel ||
+              "—"
+            )}
+          </strong>
+
+        </div>
+
+        <div>
+
+          <span>
+            Total
+          </span>
+
+          <strong>
+            ${fmtNumeroAbast(
+              totalLitrosRegistroAbast(
+                registro
+              )
+            )} L
+          </strong>
+
+        </div>
+
+      </div>
+
+      <div class="abast-detalhe-itens">
+
+        ${
+          itensRegistroAbast(registro)
+            .map((item) => {
+              return `
+                <div class="abast-detalhe-item">
+
+                  <div class="abast-detalhe-item-topo">
+
+                    <strong>
+                      ${escAbast(
+                        item.nomeEquipamento ||
+                        "Equipamento"
+                      )}
+
+                      ${
+                        item.identificacao
+                          ? ` · ${escAbast(
+                              item.identificacao
+                            )}`
+                          : ""
+                      }
+                    </strong>
+
+                    <span>
+                      ${fmtNumeroAbast(
+                        item.litros
+                      )} L
+                    </span>
+
+                  </div>
+
+                  <div class="abast-detalhe-medidor">
+
+                    ${escAbast(
+                      item.medidorRotulo ||
+                      (
+                        item.tipoEquipamento ===
+                        "caminhao"
+                          ? "Quilometragem"
+                          : "Horímetro"
+                      )
+                    )}:
+
+                    ${fmtNumeroAbast(
+                      item.medidorAnterior
+                    )}
+
+                    →
+
+                    ${fmtNumeroAbast(
+                      item.medidorAtual
+                    )}
+
+                    ${escAbast(
+                      item.unidadeMedidor ||
+                      ""
+                    )}
+
+                  </div>
+
+                </div>
+              `;
+            })
+            .join("") ||
+          `
+            <div class="abast-vazio">
+              Este registro não possui
+              itens detalhados.
+            </div>
+          `
+        }
+
+      </div>
+
+      ${
+        cancelado
+          ? `
+            <div class="abast-cancelado-info">
+              Este lançamento foi cancelado
+              e permanece no histórico.
+            </div>
+          `
+          : ""
+      }
+
+      <div class="abast-modal-acoes">
+
+        <button
+          type="button"
+          class="btn-secundario"
+          data-fechar-abast
+        >
+          Fechar
+        </button>
+
+        ${
+          cancelado
+            ? ""
+            : `
+              <button
+                type="button"
+                class="abast-btn-perigo"
+                id="btnCancelarAbast"
+              >
+                Cancelar lançamento
+              </button>
+            `
+        }
+
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(
+    overlay
+  );
+
+  overlay
+    .querySelectorAll(
+      "[data-fechar-abast]"
+    )
+    .forEach((botao) => {
+      botao.addEventListener(
+        "click",
+        fecharModalAbast
+      );
+    });
+
+  overlay.addEventListener(
+    "click",
+    (evento) => {
+      if (
+        evento.target === overlay
+      ) {
+        fecharModalAbast();
+      }
+    }
+  );
+
+  overlay
+    .querySelector(
+      "#btnCancelarAbast"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        confirmarCancelamentoAbast(
+          registro.id
+        );
+      }
+    );
+}
+
+
+function fecharModalAbast() {
+  document
+    .getElementById(
+      "abastModalOverlay"
+    )
+    ?.remove();
+}
+
+
+/* =========================================================
+   CANCELAMENTO
+   ========================================================= */
+
+function confirmarCancelamentoAbast(id) {
+  const registro =
+    abastEstado
+      .abastecimentos
+      .find((item) => {
+        return item.id === id;
+      });
+
+  const modal =
+    document.querySelector(
+      "#abastModalOverlay .abast-modal"
+    );
+
+  if (
+    !registro ||
+    !modal
+  ) {
+    return;
+  }
+
+  modal.innerHTML = `
+    <div class="abast-modal-topo">
+
+      <div>
+
+        <h3>
+          Cancelar abastecimento
+        </h3>
+
+      </div>
+
+      <button
+        type="button"
+        class="abast-modal-fechar"
+        data-fechar-abast
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div class="abast-confirmacao">
+
+      O lançamento ficará marcado
+      como cancelado e continuará
+      aparecendo no histórico.
+
+      Os horímetros e quilômetros
+      atuais da Frota não serão
+      reduzidos automaticamente.
+
+    </div>
+
+    <div class="campo">
+
+      <label for="motivoCancelamentoAbast">
+        Motivo do cancelamento *
+      </label>
+
+      <textarea
+        id="motivoCancelamentoAbast"
+        rows="3"
+        placeholder="Informe o motivo"
+      ></textarea>
+
+    </div>
+
+    <div
+      class="abast-erro"
+      id="erroCancelarAbast"
+    ></div>
+
+    <div class="abast-modal-acoes">
+
+      <button
+        type="button"
+        class="btn-secundario"
+        data-fechar-abast
+      >
+        Voltar
+      </button>
+
+      <button
+        type="button"
+        class="abast-btn-perigo"
+        id="confirmarCancelarAbast"
+      >
+        Confirmar cancelamento
+      </button>
+
+    </div>
+  `;
+
+  modal
+    .querySelectorAll(
+      "[data-fechar-abast]"
+    )
+    .forEach((botao) => {
+      botao.addEventListener(
+        "click",
+        fecharModalAbast
+      );
+    });
+
+  modal
+    .querySelector(
+      "#confirmarCancelarAbast"
+    )
+    ?.addEventListener(
+      "click",
+      () => {
+        cancelarAbastecimento(id);
+      }
+    );
+}
+
+
+async function cancelarAbastecimento(id) {
+  const motivo =
+    document
+      .getElementById(
+        "motivoCancelamentoAbast"
+      )
+      ?.value
+      ?.trim() || "";
+
+  const erro =
+    document.getElementById(
+      "erroCancelarAbast"
+    );
+
+  const botao =
+    document.getElementById(
+      "confirmarCancelarAbast"
+    );
+
+  if (!motivo) {
+    if (erro) {
+      erro.textContent =
+        "Informe o motivo do cancelamento.";
+    }
+
+    return;
+  }
+
+  try {
+    verificarFirebaseAbast();
+
+    if (botao) {
+      botao.disabled = true;
+      botao.textContent =
+        "Cancelando...";
+    }
+
+    const {
+      doc,
+      updateDoc,
+      serverTimestamp,
+    } = window.fs;
+
+    await updateDoc(
+      doc(
+        window.firebaseDb,
+        "abastecimentos",
+        id
+      ),
+      {
+        ativo: false,
+
+        status: "cancelado",
+
+        motivoCancelamento:
+          motivo,
+
+        canceladoPor:
+          usuarioAtualAbast(),
+
+        canceladoEm:
+          serverTimestamp(),
+
+        atualizadoEm:
+          serverTimestamp(),
+      }
+    );
+
+    const registro =
+      abastEstado
+        .abastecimentos
+        .find((item) => {
+          return item.id === id;
+        });
+
+    if (registro) {
+      registro.ativo = false;
+
+      registro.status =
+        "cancelado";
+
+      registro
+        .motivoCancelamento =
+        motivo;
+    }
+
+    fecharModalAbast();
+
+    atualizarHistoricoAbastecimentos();
+
+  } catch (erroFirebase) {
+    console.error(
+      "Erro ao cancelar abastecimento:",
+      erroFirebase
+    );
+
+    if (erro) {
+      erro.textContent =
+        "Não foi possível cancelar. Tente novamente.";
+    }
+
+    if (botao) {
+      botao.disabled = false;
+
+      botao.textContent =
+        "Confirmar cancelamento";
+    }
+  }
+}
+
+
+/* =========================================================
+   NOVO ABASTECIMENTO
+   ========================================================= */
+
+function iniciarNovoAbastecimento() {
+  abastEstado.tela = "novo";
+
+  abastEstado.etapa = 1;
+
+  abastEstado.selecionados =
+    new Set();
+
+  abastEstado.filtroTipo =
+    "todos";
+
+  abastEstado.buscaEquipamento =
     "";
 
+  abastEstado.dadosGerais = {
+    obraId: "",
+    data: dataHojeAbast(),
+    responsavel:
+      usuarioAtualAbast(),
+  };
+
+  renderSelecaoNovoAbastecimento();
+}
+
+
+function renderSelecaoNovoAbastecimento() {
+  const conteudo =
+    document.getElementById(
+      "abastConteudo"
+    );
+
+  if (!conteudo) {
+    return;
+  }
+
+  const dados =
+    abastEstado.dadosGerais;
+
   conteudo.innerHTML = `
+    <div class="abast-topo">
+
+      <div>
+
+        <h2>
+          Novo abastecimento
+        </h2>
+
+        <p>
+          Selecione a obra e marque
+          todos os equipamentos abastecidos.
+        </p>
+
+      </div>
+
+      <div class="abast-acoes-topo">
+
+        <button
+          type="button"
+          class="btn-secundario"
+          id="btnVoltarHistoricoAbast"
+        >
+          Voltar ao histórico
+        </button>
+
+      </div>
+
+    </div>
+
     <div class="abast-dados-gerais">
 
       <div class="campo">
+
         <label for="abastObra">
           Obra *
         </label>
@@ -557,33 +2447,36 @@ function abastRenderEtapaSelecao() {
             Selecione a obra
           </option>
 
-          ${abastecimentoEstado.obras
+          ${abastEstado.obras
             .map((obra) => {
-              const nome =
-                obra.nome ||
-                obra.titulo ||
-                "Obra sem nome";
-
-              const selecionada =
-                obra.id === obraSalva
-                  ? "selected"
-                  : "";
-
               return `
                 <option
-                  value="${abastEscaparHtml(obra.id)}"
-                  ${selecionada}
+                  value="${escAbast(
+                    obra.id
+                  )}"
+                  ${
+                    obra.id ===
+                    dados.obraId
+                      ? "selected"
+                      : ""
+                  }
                 >
-                  ${abastEscaparHtml(nome)}
+                  ${escAbast(
+                    obra.nome ||
+                    obra.titulo ||
+                    "Obra sem nome"
+                  )}
                 </option>
               `;
             })
             .join("")}
 
         </select>
+
       </div>
 
       <div class="campo">
+
         <label for="abastData">
           Data *
         </label>
@@ -591,11 +2484,15 @@ function abastRenderEtapaSelecao() {
         <input
           type="date"
           id="abastData"
-          value="${abastEscaparHtml(dataSalva)}"
+          value="${escAbast(
+            dados.data
+          )}"
         >
+
       </div>
 
       <div class="campo">
+
         <label for="abastResponsavel">
           Responsável *
         </label>
@@ -603,11 +2500,12 @@ function abastRenderEtapaSelecao() {
         <input
           type="text"
           id="abastResponsavel"
-          value="${abastEscaparHtml(responsavelSalvo)}"
+          value="${escAbast(
+            dados.responsavel
+          )}"
           placeholder="Nome do responsável"
-          maxlength="100"
-          autocomplete="off"
         >
+
       </div>
 
     </div>
@@ -618,10 +2516,7 @@ function abastRenderEtapaSelecao() {
 
         <input
           type="search"
-          id="abastBusca"
-          value="${abastEscaparHtml(
-            abastecimentoEstado.busca
-          )}"
+          id="abastBuscaEquip"
           placeholder="Pesquisar equipamento..."
           autocomplete="off"
         >
@@ -629,45 +2524,30 @@ function abastRenderEtapaSelecao() {
       </div>
 
       <div
-        class="filtro-status abast-filtros"
-        id="abastFiltros"
+        class="filtro-status"
+        id="abastFiltroTipo"
       >
 
         <button
           type="button"
-          class="chip-status ${
-            abastecimentoEstado.filtroTipo ===
-            "todos"
-              ? "ativo"
-              : ""
-          }"
-          data-abast-tipo="todos"
+          class="chip-status ativo"
+          data-tipo="todos"
         >
           Todos
         </button>
 
         <button
           type="button"
-          class="chip-status ${
-            abastecimentoEstado.filtroTipo ===
-            "maquina"
-              ? "ativo"
-              : ""
-          }"
-          data-abast-tipo="maquina"
+          class="chip-status"
+          data-tipo="maquina"
         >
           Máquinas
         </button>
 
         <button
           type="button"
-          class="chip-status ${
-            abastecimentoEstado.filtroTipo ===
-            "caminhao"
-              ? "ativo"
-              : ""
-          }"
-          data-abast-tipo="caminhao"
+          class="chip-status"
+          data-tipo="caminhao"
         >
           Caminhões
         </button>
@@ -676,20 +2556,18 @@ function abastRenderEtapaSelecao() {
 
     </div>
 
-    <div id="abastListaEquipamentos"></div>
+    <div id="abastListaEquip"></div>
 
     <div class="abast-barra-acao">
 
       <div>
 
-        <strong
-          id="abastContadorSelecionados"
-        >
+        <strong id="abastQtdSelecionados">
           Nenhum equipamento selecionado
         </strong>
 
         <span>
-          Toque nos cards para marcar.
+          Toque nos cards para selecionar.
         </span>
 
       </div>
@@ -697,7 +2575,7 @@ function abastRenderEtapaSelecao() {
       <button
         type="button"
         class="btn-primario"
-        id="btnAbastContinuar"
+        id="btnContinuarAbast"
         disabled
       >
         Continuar
@@ -706,56 +2584,51 @@ function abastRenderEtapaSelecao() {
     </div>
   `;
 
-  abastConfigurarEventosSelecao();
+  document
+    .getElementById(
+      "btnVoltarHistoricoAbast"
+    )
+    ?.addEventListener(
+      "click",
+      renderHistoricoAbastecimentos
+    );
 
-  abastRenderListaEquipamentos();
-}
-
-
-function abastConfigurarEventosSelecao() {
-  const busca = document.getElementById(
-    "abastBusca"
-  );
-
-  const filtros = document.getElementById(
-    "abastFiltros"
-  );
-
-  const continuar = document.getElementById(
-    "btnAbastContinuar"
-  );
-
-  if (busca) {
-    busca.addEventListener(
+  document
+    .getElementById(
+      "abastBuscaEquip"
+    )
+    ?.addEventListener(
       "input",
       (evento) => {
-        abastecimentoEstado.busca =
+        abastEstado.buscaEquipamento =
           evento.target.value;
 
-        abastRenderListaEquipamentos();
+        renderCardsEquipamentosAbast();
       }
     );
-  }
 
-  if (filtros) {
-    filtros.addEventListener(
+  document
+    .getElementById(
+      "abastFiltroTipo"
+    )
+    ?.addEventListener(
       "click",
       (evento) => {
         const botao =
           evento.target.closest(
-            "[data-abast-tipo]"
+            "[data-tipo]"
           );
 
         if (!botao) {
           return;
         }
 
-        abastecimentoEstado.filtroTipo =
-          botao.dataset.abastTipo;
+        abastEstado.filtroTipo =
+          botao.dataset.tipo;
 
-        filtros
+        document
           .querySelectorAll(
-            "[data-abast-tipo]"
+            "#abastFiltroTipo [data-tipo]"
           )
           .forEach((item) => {
             item.classList.toggle(
@@ -764,36 +2637,38 @@ function abastConfigurarEventosSelecao() {
             );
           });
 
-        abastRenderListaEquipamentos();
+        renderCardsEquipamentosAbast();
       }
     );
-  }
 
-  if (continuar) {
-    continuar.addEventListener(
+  document
+    .getElementById(
+      "btnContinuarAbast"
+    )
+    ?.addEventListener(
       "click",
-      abastAvancarParaLancamento
+      avancarLancamentoAbast
     );
-  }
+
+  renderCardsEquipamentosAbast();
 }
 
 
-function abastObterEquipamentosFiltrados() {
+function equipamentosFiltradosAbast() {
   const busca =
-    abastNormalizarTexto(
-      abastecimentoEstado.busca
+    normAbast(
+      abastEstado.buscaEquipamento
     );
 
-  return abastecimentoEstado
+  return abastEstado
     .equipamentos
-    .filter((equipamento) => {
-      const correspondeTipo =
-        abastecimentoEstado.filtroTipo ===
-          "todos" ||
-        equipamento.tipo ===
-          abastecimentoEstado.filtroTipo;
-
-      if (!correspondeTipo) {
+    .filter((item) => {
+      if (
+        abastEstado.filtroTipo !==
+          "todos" &&
+        item.tipo !==
+          abastEstado.filtroTipo
+      ) {
         return false;
       }
 
@@ -801,41 +2676,36 @@ function abastObterEquipamentosFiltrados() {
         return true;
       }
 
-      const textoEquipamento =
-        abastNormalizarTexto([
-          equipamento.nome,
-          equipamento.identificacao,
-          equipamento.tipoRotulo,
-          equipamento.medidorRotulo,
-        ].join(" "));
-
-      return textoEquipamento.includes(
-        busca
-      );
+      return normAbast(`
+        ${item.nome}
+        ${item.identificacao}
+        ${item.tipoRotulo}
+      `).includes(busca);
     });
 }
 
 
-function abastRenderListaEquipamentos() {
-  const lista = document.getElementById(
-    "abastListaEquipamentos"
-  );
+function renderCardsEquipamentosAbast() {
+  const lista =
+    document.getElementById(
+      "abastListaEquip"
+    );
 
   if (!lista) {
     return;
   }
 
-  const equipamentos =
-    abastObterEquipamentosFiltrados();
+  const itens =
+    equipamentosFiltradosAbast();
 
-  if (equipamentos.length === 0) {
+  if (itens.length === 0) {
     lista.innerHTML = `
-      <div class="cadastro-vazio">
+      <div class="abast-vazio">
         Nenhum equipamento encontrado.
       </div>
     `;
 
-    abastAtualizarBarraSelecao();
+    atualizarContadorSelecaoAbast();
 
     return;
   }
@@ -843,23 +2713,15 @@ function abastRenderListaEquipamentos() {
   lista.innerHTML = `
     <div class="abast-grid-equipamentos">
 
-      ${equipamentos
-        .map((equipamento) => {
+      ${itens
+        .map((item) => {
           const chave =
-            abastChaveEquipamento(
-              equipamento
-            );
+            chaveEquipAbast(item);
 
           const selecionado =
-            abastecimentoEstado
+            abastEstado
               .selecionados
               .has(chave);
-
-          const icone =
-            equipamento.tipo ===
-            "maquina"
-              ? abastIconeMaquina()
-              : abastIconeCaminhao();
 
           return `
             <button
@@ -869,65 +2731,52 @@ function abastRenderListaEquipamentos() {
                   ? "selecionado"
                   : ""
               }"
-              data-abast-equipamento="${abastEscaparHtml(
+              data-equip="${escAbast(
                 chave
               )}"
-              aria-pressed="${
-                selecionado
-                  ? "true"
-                  : "false"
-              }"
+              aria-pressed="${selecionado}"
             >
 
-              <span class="abast-card-icone">
-                ${icone}
-              </span>
-
-              <span
-                class="abast-card-check"
-                aria-hidden="true"
-              >
-                ${abastIconeCheck()}
+              <span class="abast-card-check">
+                ✓
               </span>
 
               <span class="abast-card-tipo">
-                ${abastEscaparHtml(
-                  equipamento.tipoRotulo
+                ${escAbast(
+                  item.tipoRotulo
                 )}
               </span>
 
               <strong>
-                ${abastEscaparHtml(
-                  equipamento.nome
+                ${escAbast(
+                  item.nome
                 )}
               </strong>
 
-              <span
-                class="abast-card-identificacao"
-              >
-                ${abastEscaparHtml(
-                  equipamento.identificacao
+              <span class="abast-card-identificacao">
+                ${escAbast(
+                  item.identificacao
                 )}
               </span>
 
               <span class="abast-card-medidor">
 
                 <small>
-                  ${abastEscaparHtml(
-                    equipamento.medidorRotulo
+                  ${escAbast(
+                    item.medidorRotulo
                   )} atual
                 </small>
 
                 <b>
-                  ${abastFormatarNumero(
-                    equipamento.medidorAtual
+                  ${fmtNumeroAbast(
+                    item.medidorAtual
                   )}
 
                   ${
-                    equipamento.medidorAtual !==
+                    item.medidorAtual !==
                     null
-                      ? abastEscaparHtml(
-                          equipamento.unidade
+                      ? escAbast(
+                          item.unidade
                         )
                       : ""
                   }
@@ -945,71 +2794,64 @@ function abastRenderListaEquipamentos() {
 
   lista
     .querySelectorAll(
-      "[data-abast-equipamento]"
+      "[data-equip]"
     )
     .forEach((card) => {
       card.addEventListener(
         "click",
         () => {
-          abastAlternarEquipamento(
-            card.dataset
-              .abastEquipamento
-          );
+          const chave =
+            card.dataset.equip;
+
+          if (
+            abastEstado
+              .selecionados
+              .has(chave)
+          ) {
+            abastEstado
+              .selecionados
+              .delete(chave);
+
+          } else {
+            abastEstado
+              .selecionados
+              .add(chave);
+          }
+
+          renderCardsEquipamentosAbast();
         }
       );
     });
 
-  abastAtualizarBarraSelecao();
+  atualizarContadorSelecaoAbast();
 }
 
 
-function abastAlternarEquipamento(chave) {
-  if (
-    abastecimentoEstado
-      .selecionados
-      .has(chave)
-  ) {
-    abastecimentoEstado
-      .selecionados
-      .delete(chave);
-
-  } else {
-    abastecimentoEstado
-      .selecionados
-      .add(chave);
-  }
-
-  abastRenderListaEquipamentos();
-}
-
-
-function abastAtualizarBarraSelecao() {
+function atualizarContadorSelecaoAbast() {
   const quantidade =
-    abastecimentoEstado
+    abastEstado
       .selecionados
       .size;
 
-  const contador = document.getElementById(
-    "abastContadorSelecionados"
-  );
+  const contador =
+    document.getElementById(
+      "abastQtdSelecionados"
+    );
 
-  const botao = document.getElementById(
-    "btnAbastContinuar"
-  );
+  const botao =
+    document.getElementById(
+      "btnContinuarAbast"
+    );
 
   if (contador) {
-    if (quantidade === 0) {
-      contador.textContent =
-        "Nenhum equipamento selecionado";
-
-    } else if (quantidade === 1) {
-      contador.textContent =
-        "1 equipamento selecionado";
-
-    } else {
-      contador.textContent =
-        `${quantidade} equipamentos selecionados`;
-    }
+    contador.textContent =
+      quantidade === 0
+        ? "Nenhum equipamento selecionado"
+        : `${quantidade} ${
+            quantidade === 1
+              ? "equipamento selecionado"
+              : "equipamentos selecionados"
+          }`;
   }
 
   if (botao) {
@@ -1024,66 +2866,45 @@ function abastAtualizarBarraSelecao() {
 }
 
 
-/* =========================================================
-   VALIDAÇÃO DA ETAPA 1
-   ========================================================= */
-
-function abastAvancarParaLancamento() {
-  const campoObra = document.getElementById(
-    "abastObra"
-  );
-
-  const campoData = document.getElementById(
-    "abastData"
-  );
-
-  const campoResponsavel =
-    document.getElementById(
-      "abastResponsavel"
-    );
-
+function avancarLancamentoAbast() {
   const obraId =
-    campoObra?.value || "";
+    document
+      .getElementById("abastObra")
+      ?.value || "";
 
   const data =
-    campoData?.value || "";
+    document
+      .getElementById("abastData")
+      ?.value || "";
 
   const responsavel =
-    campoResponsavel?.value?.trim() ||
-    "";
+    document
+      .getElementById(
+        "abastResponsavel"
+      )
+      ?.value
+      ?.trim() || "";
 
   if (!obraId) {
-    alert(
-      "Selecione a obra."
-    );
-
-    campoObra?.focus();
-
+    alert("Selecione a obra.");
     return;
   }
 
   if (!data) {
-    alert(
-      "Informe a data do abastecimento."
-    );
-
-    campoData?.focus();
-
+    alert("Informe a data.");
     return;
   }
 
   if (!responsavel) {
     alert(
-      "Informe o responsável pelo abastecimento."
+      "Informe o responsável."
     );
-
-    campoResponsavel?.focus();
 
     return;
   }
 
   if (
-    abastecimentoEstado
+    abastEstado
       .selecionados
       .size === 0
   ) {
@@ -1094,123 +2915,138 @@ function abastAvancarParaLancamento() {
     return;
   }
 
-  abastecimentoEstado.dadosGerais = {
+  abastEstado.dadosGerais = {
     obraId,
     data,
     responsavel,
   };
 
-  abastRenderEtapaLancamento();
+  renderLancamentoAbast();
 }
 
 
 /* =========================================================
-   ETAPA 2 — PREENCHIMENTO
+   LANÇAMENTO
    ========================================================= */
 
-function abastObterEquipamentosSelecionados() {
-  return abastecimentoEstado
+function selecionadosAbast() {
+  return abastEstado
     .equipamentos
-    .filter((equipamento) => {
-      return abastecimentoEstado
+    .filter((item) => {
+      return abastEstado
         .selecionados
         .has(
-          abastChaveEquipamento(
-            equipamento
-          )
+          chaveEquipAbast(item)
         );
     });
 }
 
 
-function abastRenderEtapaLancamento() {
-  abastecimentoEstado.etapa = 2;
-
-  abastAtualizarIndicadorEtapa();
-
-  const conteudo = document.getElementById(
-    "abastConteudo"
-  );
+function renderLancamentoAbast() {
+  const conteudo =
+    document.getElementById(
+      "abastConteudo"
+    );
 
   if (!conteudo) {
     return;
   }
 
   const equipamentos =
-    abastObterEquipamentosSelecionados();
+    selecionadosAbast();
 
   const obra =
-    abastecimentoEstado
+    abastEstado
       .obras
       .find((item) => {
         return (
           item.id ===
-          abastecimentoEstado
+          abastEstado
             .dadosGerais
             .obraId
         );
       });
 
-  const obraNome =
-    obra?.nome ||
-    obra?.titulo ||
-    "Obra";
-
   conteudo.innerHTML = `
+    <div class="abast-topo">
+
+      <div>
+
+        <h2>
+          Informar abastecimento
+        </h2>
+
+        <p>
+          Preencha litros e o novo
+          medidor de cada equipamento.
+        </p>
+
+      </div>
+
+    </div>
+
     <div class="abast-resumo-lancamento">
 
       <div>
+
         <span>
           Obra
         </span>
 
         <strong>
-          ${abastEscaparHtml(
-            obraNome
+          ${escAbast(
+            obra?.nome ||
+            obra?.titulo ||
+            "Obra"
           )}
         </strong>
+
       </div>
 
       <div>
+
         <span>
           Data
         </span>
 
         <strong>
-          ${abastEscaparHtml(
-            abastFormatarData(
-              abastecimentoEstado
+          ${escAbast(
+            fmtDataAbast(
+              abastEstado
                 .dadosGerais
                 .data
             )
           )}
         </strong>
+
       </div>
 
       <div>
+
         <span>
           Responsável
         </span>
 
         <strong>
-          ${abastEscaparHtml(
-            abastecimentoEstado
+          ${escAbast(
+            abastEstado
               .dadosGerais
               .responsavel
           )}
         </strong>
+
       </div>
 
     </div>
 
-    <form id="formAbastecimento">
+    <form id="formSalvarAbast">
 
       <div class="abast-lista-lancamentos">
 
         ${equipamentos
-          .map((equipamento, indice) => {
-            return abastRenderItemLancamento(
-              equipamento,
+          .map((item, indice) => {
+            return renderItemLancamentoAbast(
+              item,
               indice
             );
           })
@@ -1220,8 +3056,7 @@ function abastRenderEtapaLancamento() {
 
       <div
         class="abast-erro"
-        id="abastErro"
-        role="alert"
+        id="erroSalvarAbast"
       ></div>
 
       <div class="abast-acoes-finais">
@@ -1229,7 +3064,7 @@ function abastRenderEtapaLancamento() {
         <button
           type="button"
           class="btn-secundario"
-          id="btnAbastVoltar"
+          id="btnVoltarSelecaoAbast"
         >
           Voltar
         </button>
@@ -1237,11 +3072,11 @@ function abastRenderEtapaLancamento() {
         <button
           type="submit"
           class="btn-primario"
-          id="btnAbastSalvar"
+          id="btnSalvarAbast"
         >
-          Salvar ${
-            equipamentos.length
-          } ${
+          Salvar
+          ${equipamentos.length}
+          ${
             equipamentos.length === 1
               ? "abastecimento"
               : "abastecimentos"
@@ -1253,70 +3088,54 @@ function abastRenderEtapaLancamento() {
     </form>
   `;
 
-  const botaoVoltar =
-    document.getElementById(
-      "btnAbastVoltar"
-    );
-
-  const formulario =
-    document.getElementById(
-      "formAbastecimento"
-    );
-
-  if (botaoVoltar) {
-    botaoVoltar.addEventListener(
+  document
+    .getElementById(
+      "btnVoltarSelecaoAbast"
+    )
+    ?.addEventListener(
       "click",
-      () => {
-        abastRenderEtapaSelecao();
-      }
+      renderSelecaoNovoAbastecimento
     );
-  }
 
-  if (formulario) {
-    formulario.addEventListener(
+  document
+    .getElementById(
+      "formSalvarAbast"
+    )
+    ?.addEventListener(
       "submit",
       async (evento) => {
         evento.preventDefault();
 
-        await abastSalvar();
+        await salvarNovoAbastecimento();
       }
     );
-  }
 }
 
 
-function abastRenderItemLancamento(
-  equipamento,
+function renderItemLancamentoAbast(
+  item,
   indice
 ) {
-  const medidorAtual =
-    equipamento.medidorAtual === null
-      ? ""
-      : equipamento.medidorAtual;
-
   return `
-    <article
-      class="abast-item-lancamento"
-      data-abast-indice="${indice}"
-    >
+    <article class="abast-item-lancamento">
 
       <div class="abast-item-cabecalho">
 
         <div>
 
           <span>
-            ${abastEscaparHtml(
-              equipamento.tipoRotulo
+            ${escAbast(
+              item.tipoRotulo
             )}
             ·
-            ${abastEscaparHtml(
-              equipamento.identificacao
+            ${escAbast(
+              item.identificacao
             )}
           </span>
 
           <h3>
-            ${abastEscaparHtml(
-              equipamento.nome
+            ${escAbast(
+              item.nome
             )}
           </h3>
 
@@ -1325,21 +3144,21 @@ function abastRenderItemLancamento(
         <div class="abast-medidor-anterior">
 
           <span>
-            ${abastEscaparHtml(
-              equipamento.medidorRotulo
+            ${escAbast(
+              item.medidorRotulo
             )} atual
           </span>
 
           <strong>
-            ${abastFormatarNumero(
-              equipamento.medidorAtual
+            ${fmtNumeroAbast(
+              item.medidorAtual
             )}
 
             ${
-              equipamento.medidorAtual !==
+              item.medidorAtual !==
               null
-                ? abastEscaparHtml(
-                    equipamento.unidade
+                ? escAbast(
+                    item.unidade
                   )
                 : ""
             }
@@ -1353,29 +3172,27 @@ function abastRenderItemLancamento(
 
         <div class="campo">
 
-          <label
-            for="abastMedidor${indice}"
-          >
+          <label for="medidorAbast${indice}">
             Novo
-            ${abastEscaparHtml(
-              equipamento.medidorRotulo
+            ${escAbast(
+              item.medidorRotulo
                 .toLowerCase()
             )}
-            (${abastEscaparHtml(
-              equipamento.unidade
+            (${escAbast(
+              item.unidade
             )}) *
           </label>
 
           <input
             type="number"
-            id="abastMedidor${indice}"
-            data-abast-medidor="${indice}"
-            value="${abastEscaparHtml(
-              medidorAtual
-            )}"
+            id="medidorAbast${indice}"
+            data-medidor="${indice}"
+            value="${
+              item.medidorAtual ??
+              ""
+            }"
             min="0"
             step="0.01"
-            inputmode="decimal"
             required
           >
 
@@ -1383,20 +3200,17 @@ function abastRenderItemLancamento(
 
         <div class="campo">
 
-          <label
-            for="abastLitros${indice}"
-          >
+          <label for="litrosAbast${indice}">
             Litros abastecidos *
           </label>
 
           <input
             type="number"
-            id="abastLitros${indice}"
-            data-abast-litros="${indice}"
-            placeholder="Ex.: 120"
+            id="litrosAbast${indice}"
+            data-litros="${indice}"
             min="0.01"
             step="0.01"
-            inputmode="decimal"
+            placeholder="Ex.: 120"
             required
           >
 
@@ -1409,59 +3223,39 @@ function abastRenderItemLancamento(
 }
 
 
-/* =========================================================
-   COLETA E VALIDAÇÃO
-   ========================================================= */
-
-function abastColetarItens() {
-  const equipamentos =
-    abastObterEquipamentosSelecionados();
-
-  const itens = [];
-
-  equipamentos.forEach(
-    (equipamento, indice) => {
-      const campoMedidor =
-        document.querySelector(
-          `[data-abast-medidor="${indice}"]`
-        );
-
-      const campoLitros =
-        document.querySelector(
-          `[data-abast-litros="${indice}"]`
-        );
-
-      const novoMedidor =
-        abastConverterNumero(
-          campoMedidor?.value
+function coletarItensNovoAbast() {
+  return selecionadosAbast()
+    .map((item, indice) => {
+      const medidor =
+        numAbast(
+          document.querySelector(
+            `[data-medidor="${indice}"]`
+          )?.value
         );
 
       const litros =
-        abastConverterNumero(
-          campoLitros?.value
+        numAbast(
+          document.querySelector(
+            `[data-litros="${indice}"]`
+          )?.value
         );
 
       if (
-        novoMedidor === null ||
-        novoMedidor < 0
+        medidor === null ||
+        medidor < 0
       ) {
-        campoMedidor?.focus();
-
         throw new Error(
-          `Informe o novo ${equipamento.medidorRotulo.toLowerCase()} de ${equipamento.nome}.`
+          `Informe o novo ${item.medidorRotulo.toLowerCase()} de ${item.nome}.`
         );
       }
 
       if (
-        equipamento.medidorAtual !==
-          null &&
-        novoMedidor <
-          equipamento.medidorAtual
+        item.medidorAtual !== null &&
+        medidor <
+          item.medidorAtual
       ) {
-        campoMedidor?.focus();
-
         throw new Error(
-          `O novo ${equipamento.medidorRotulo.toLowerCase()} de ${equipamento.nome} não pode ser menor que o valor atual.`
+          `O novo ${item.medidorRotulo.toLowerCase()} de ${item.nome} não pode ser menor que o atual.`
         );
       }
 
@@ -1469,102 +3263,98 @@ function abastColetarItens() {
         litros === null ||
         litros <= 0
       ) {
-        campoLitros?.focus();
-
         throw new Error(
-          `Informe os litros abastecidos de ${equipamento.nome}.`
+          `Informe os litros abastecidos de ${item.nome}.`
         );
       }
 
-      itens.push({
+      return {
         equipamentoId:
-          equipamento.id,
+          item.id,
 
         colecaoEquipamento:
-          equipamento.colecao,
+          item.colecao,
 
         tipoEquipamento:
-          equipamento.tipo,
+          item.tipo,
 
         tipoRotulo:
-          equipamento.tipoRotulo,
+          item.tipoRotulo,
 
         nomeEquipamento:
-          equipamento.nome,
+          item.nome,
 
         identificacao:
-          equipamento.identificacao,
+          item.identificacao,
 
         campoMedidor:
-          equipamento.campoMedidor,
+          item.campoMedidor,
 
         medidorRotulo:
-          equipamento.medidorRotulo,
+          item.medidorRotulo,
 
         unidadeMedidor:
-          equipamento.unidade,
+          item.unidade,
 
         medidorAnterior:
-          equipamento.medidorAtual,
+          item.medidorAtual,
 
         medidorAtual:
-          novoMedidor,
+          medidor,
 
         litros,
-      });
-    }
-  );
-
-  return itens;
+      };
+    });
 }
 
 
 /* =========================================================
-   SALVAMENTO NO FIRESTORE
+   SALVAMENTO
    ========================================================= */
 
-async function abastSalvar() {
-  const areaErro =
+async function salvarNovoAbastecimento() {
+  const erro =
     document.getElementById(
-      "abastErro"
+      "erroSalvarAbast"
     );
 
-  const botaoSalvar =
+  const botao =
     document.getElementById(
-      "btnAbastSalvar"
+      "btnSalvarAbast"
     );
 
   if (
-    !areaErro ||
-    !botaoSalvar ||
-    abastecimentoEstado.salvando
+    !erro ||
+    !botao ||
+    abastEstado.salvando
   ) {
     return;
   }
 
-  areaErro.textContent = "";
+  erro.textContent = "";
 
   let itens;
 
   try {
-    itens = abastColetarItens();
+    itens =
+      coletarItensNovoAbast();
 
   } catch (erroValidacao) {
-    areaErro.textContent =
+    erro.textContent =
       erroValidacao.message;
 
     return;
   }
 
-  abastecimentoEstado.salvando = true;
-
-  botaoSalvar.disabled = true;
-
-  botaoSalvar.textContent =
-    "Salvando...";
-
   try {
-    abastVerificarFirebase();
+    verificarFirebaseAbast();
+
+    abastEstado.salvando = true;
+
+    botao.disabled = true;
+
+    botao.textContent =
+      "Salvando...";
 
     const {
       collection,
@@ -1575,54 +3365,55 @@ async function abastSalvar() {
     } = window.fs;
 
     const obra =
-      abastecimentoEstado
+      abastEstado
         .obras
         .find((item) => {
           return (
             item.id ===
-            abastecimentoEstado
+            abastEstado
               .dadosGerais
               .obraId
           );
         });
 
-    const obraNome =
-      obra?.nome ||
-      obra?.titulo ||
-      "Obra";
-
-    const totalLitros =
-      itens.reduce(
-        (soma, item) => {
-          return soma + item.litros;
-        },
-        0
-      );
-
-    const dadosRegistro = {
+    const registro = {
       obraId:
-        abastecimentoEstado
+        abastEstado
           .dadosGerais
           .obraId,
 
-      obraNome,
+      obraNome:
+        obra?.nome ||
+        obra?.titulo ||
+        "Obra",
 
       data:
-        abastecimentoEstado
+        abastEstado
           .dadosGerais
           .data,
 
       responsavel:
-        abastecimentoEstado
+        abastEstado
           .dadosGerais
           .responsavel,
 
       quantidadeEquipamentos:
         itens.length,
 
-      totalLitros,
+      totalLitros:
+        itens.reduce(
+          (soma, item) => {
+            return (
+              soma +
+              item.litros
+            );
+          },
+          0
+        ),
 
       itens,
+
+      status: "ativo",
 
       ativo: true,
 
@@ -1633,13 +3424,13 @@ async function abastSalvar() {
         serverTimestamp(),
     };
 
-    const documentoAbastecimento =
+    const salvo =
       await addDoc(
         collection(
           window.firebaseDb,
           "abastecimentos"
         ),
-        dadosRegistro
+        registro
       );
 
     await Promise.all(
@@ -1655,7 +3446,7 @@ async function abastSalvar() {
               item.medidorAtual,
 
             ultimoAbastecimentoId:
-              documentoAbastecimento.id,
+              salvo.id,
 
             ultimoAbastecimentoEm:
               serverTimestamp(),
@@ -1667,9 +3458,34 @@ async function abastSalvar() {
       })
     );
 
-    abastRenderSucesso(
-      itens.length,
-      totalLitros
+    abastEstado
+      .abastecimentos
+      .unshift({
+        id: salvo.id,
+        ...registro,
+      });
+
+    itens.forEach((item) => {
+      const equipamento =
+        abastEstado
+          .equipamentos
+          .find((equipamentoAtual) => {
+            return (
+              equipamentoAtual.id ===
+                item.equipamentoId &&
+              equipamentoAtual.colecao ===
+                item.colecaoEquipamento
+            );
+          });
+
+      if (equipamento) {
+        equipamento.medidorAtual =
+          item.medidorAtual;
+      }
+    });
+
+    renderSucessoNovoAbast(
+      registro
     );
 
   } catch (erroFirebase) {
@@ -1678,16 +3494,16 @@ async function abastSalvar() {
       erroFirebase
     );
 
-    areaErro.textContent =
-      "Não foi possível salvar. Verifique sua conexão com a internet e tente novamente.";
+    erro.textContent =
+      "Não foi possível salvar. Verifique a conexão e tente novamente.";
 
-    botaoSalvar.disabled = false;
+    botao.disabled = false;
 
-    botaoSalvar.textContent =
+    botao.textContent =
       "Tentar salvar novamente";
 
   } finally {
-    abastecimentoEstado.salvando = false;
+    abastEstado.salvando = false;
   }
 }
 
@@ -1696,13 +3512,13 @@ async function abastSalvar() {
    TELA DE SUCESSO
    ========================================================= */
 
-function abastRenderSucesso(
-  quantidade,
-  totalLitros
+function renderSucessoNovoAbast(
+  registro
 ) {
-  const conteudo = document.getElementById(
-    "abastConteudo"
-  );
+  const conteudo =
+    document.getElementById(
+      "abastConteudo"
+    );
 
   if (!conteudo) {
     return;
@@ -1712,7 +3528,7 @@ function abastRenderSucesso(
     <div class="abast-sucesso">
 
       <div class="abast-sucesso-icone">
-        ${abastIconeCheck()}
+        ✓
       </div>
 
       <h2>
@@ -1720,48 +3536,70 @@ function abastRenderSucesso(
       </h2>
 
       <p>
+
+        ${registro
+          .quantidadeEquipamentos}
+
         ${
-          quantidade === 1
-            ? "1 equipamento foi atualizado"
-            : `${quantidade} equipamentos foram atualizados`
+          registro
+            .quantidadeEquipamentos ===
+          1
+            ? "equipamento atualizado"
+            : "equipamentos atualizados"
         }
+
         com
+
         <strong>
-          ${abastFormatarNumero(
-            totalLitros
+          ${fmtNumeroAbast(
+            registro.totalLitros
           )} litros
         </strong>
+
         no total.
+
       </p>
 
-      <button
-        type="button"
-        class="btn-primario"
-        id="btnNovoAbastecimento"
-      >
-        Registrar novo abastecimento
-      </button>
+      <div class="abast-acoes-topo">
+
+        <button
+          type="button"
+          class="btn-secundario"
+          id="btnHistoricoDepoisAbast"
+        >
+          Ver histórico
+        </button>
+
+        <button
+          type="button"
+          class="btn-primario"
+          id="btnNovoDepoisAbast"
+        >
+          Novo abastecimento
+        </button>
+
+      </div>
 
     </div>
   `;
 
-  abastecimentoEstado.etapa = 2;
-
-  abastAtualizarIndicadorEtapa();
-
-  const botaoNovo =
-    document.getElementById(
-      "btnNovoAbastecimento"
-    );
-
-  if (botaoNovo) {
-    botaoNovo.addEventListener(
+  document
+    .getElementById(
+      "btnHistoricoDepoisAbast"
+    )
+    ?.addEventListener(
       "click",
-      () => {
-        renderAbastecimentos();
-      }
+      renderHistoricoAbastecimentos
     );
-  }
+
+  document
+    .getElementById(
+      "btnNovoDepoisAbast"
+    )
+    ?.addEventListener(
+      "click",
+      iniciarNovoAbastecimento
+    );
 }
 
 
@@ -1769,20 +3607,17 @@ function abastRenderSucesso(
    ERRO DE CARREGAMENTO
    ========================================================= */
 
-function abastRenderErroCarregamento(
+function renderErroAbastecimentos(
   erro
 ) {
-  const conteudo = document.getElementById(
-    "abastConteudo"
-  );
+  const conteudo =
+    document.getElementById(
+      "abastConteudo"
+    );
 
   if (!conteudo) {
     return;
   }
-
-  const mensagem =
-    erro?.message ||
-    "Não foi possível carregar o módulo.";
 
   conteudo.innerHTML = `
     <div class="em-construcao estado-erro">
@@ -1792,18 +3627,21 @@ function abastRenderErroCarregamento(
       </h3>
 
       <p>
-        Verifique sua conexão com a internet
+        Verifique a conexão com o Firebase
         e tente novamente.
       </p>
 
       <div class="etapa">
-        ${abastEscaparHtml(mensagem)}
+        ${escAbast(
+          erro?.message ||
+          "Erro ao carregar o módulo."
+        )}
       </div>
 
       <button
         type="button"
         class="btn-primario"
-        id="btnRecarregarAbastecimentos"
+        id="btnRecarregarAbast"
       >
         Tentar novamente
       </button>
@@ -1811,50 +3649,17 @@ function abastRenderErroCarregamento(
     </div>
   `;
 
-  const botao =
-    document.getElementById(
-      "btnRecarregarAbastecimentos"
-    );
-
-  if (botao) {
-    botao.addEventListener(
-      "click",
-      () => {
-        renderAbastecimentos();
-      }
-    );
-  }
-}
-
-
-/* =========================================================
-   INDICADOR DE ETAPAS
-   ========================================================= */
-
-function abastAtualizarIndicadorEtapa() {
   document
-    .querySelectorAll(
-      "[data-abast-indicador]"
+    .getElementById(
+      "btnRecarregarAbast"
     )
-    .forEach((indicador) => {
-      const etapa = Number(
-        indicador.dataset
-          .abastIndicador
-      );
-
-      indicador.classList.toggle(
-        "ativo",
-        etapa <=
-          abastecimentoEstado.etapa
-      );
-    });
+    ?.addEventListener(
+      "click",
+      renderAbastecimentos
+    );
 }
 
-
-/* =========================================================
-   CONFIRMAÇÃO DE CARREGAMENTO
-   ========================================================= */
 
 console.log(
-  "Módulo abastecimentos.js carregado com sucesso."
+  "Módulo abastecimentos.js v2 carregado com sucesso."
 );
