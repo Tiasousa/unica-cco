@@ -13,7 +13,7 @@ const STATUS_OBRA = [
   { valor: "concluida", rotulo: "Concluída" },
 ];
 
-let obrasFiltro = { status: "todas", busca: "" };
+let obrasFiltro = { status: "todas", busca: "", mostrarInativas: false };
 let obrasCache = [];
 let cacheResponsaveis = null;
 
@@ -64,6 +64,9 @@ async function renderObras() {
           <button type="button" class="chip-status" data-status="parada">Paradas</button>
           <button type="button" class="chip-status" data-status="concluida">Concluídas</button>
         </div>
+        <label class="check-inativos">
+          <input type="checkbox" id="mostrarObrasInativas"> Mostrar desativadas
+        </label>
         <button class="btn-primario" id="btnAdicionarObra">+ Adicionar obra</button>
       </div>
       <div id="listaObrasWrap">
@@ -85,8 +88,12 @@ async function renderObras() {
       renderizarListaObras();
     });
   });
+  document.getElementById("mostrarObrasInativas").addEventListener("change", (e) => {
+    obrasFiltro.mostrarInativas = e.target.checked;
+    renderizarListaObras();
+  });
 
-  obrasFiltro = { status: "todas", busca: "" };
+  obrasFiltro = { status: "todas", busca: "", mostrarInativas: false };
   await carregarObras();
 }
 
@@ -116,6 +123,7 @@ function renderizarListaObras() {
   const wrap = document.getElementById("listaObrasWrap");
   let itens = obrasCache;
 
+  if (!obrasFiltro.mostrarInativas) itens = itens.filter(o => o.ativo !== false);
   if (obrasFiltro.status !== "todas") itens = itens.filter(o => o.status === obrasFiltro.status);
   if (obrasFiltro.busca) {
     itens = itens.filter(o =>
@@ -133,10 +141,16 @@ function renderizarListaObras() {
   wrap.innerHTML = `
     <div class="grid-obras">
       ${itens.map(o => `
-        <div class="card-obra">
+        <div class="card-obra${o.ativo === false ? " card-obra-inativa" : ""}">
           <div class="card-obra-topo">
-            <span class="badge ${badgeClasseObra(o.status)}">${rotuloStatusObra(o.status)}</span>
-            <button class="btn-icone" title="Editar" data-editar-obra="${o.id}">${iconeLapis()}</button>
+            <span class="badge ${o.ativo === false ? "parada" : badgeClasseObra(o.status)}">${o.ativo === false ? "Desativada" : rotuloStatusObra(o.status)}</span>
+            <div class="celula-acoes">
+              <button class="btn-icone" title="Editar" data-editar-obra="${o.id}">${iconeLapis()}</button>
+              ${o.ativo === false
+                ? `<button class="btn-icone" title="Reativar" data-reativar-obra="${o.id}">${iconeCheck()}</button>`
+                : `<button class="btn-icone" title="Desativar" data-desativar-obra="${o.id}">${iconeX()}</button>`}
+              <button class="btn-icone btn-icone-perigo" title="Excluir permanentemente" data-excluir-obra="${o.id}" data-nome-obra="${escaparHtml(o.nome)}">${iconeLixeira()}</button>
+            </div>
           </div>
           <h3>${escaparHtml(o.nome) || "Sem nome"}</h3>
           <p class="card-obra-info">${o.cliente ? escaparHtml(o.cliente) + " · " : ""}${escaparHtml(o.cidade) || "—"}</p>
@@ -152,6 +166,57 @@ function renderizarListaObras() {
   wrap.querySelectorAll("[data-editar-obra]").forEach(btn => {
     btn.addEventListener("click", () => abrirModalObra(btn.dataset.editarObra));
   });
+  wrap.querySelectorAll("[data-desativar-obra]").forEach(btn => {
+    btn.addEventListener("click", () => alternarAtivoObra(btn.dataset.desativarObra, false));
+  });
+  wrap.querySelectorAll("[data-reativar-obra]").forEach(btn => {
+    btn.addEventListener("click", () => alternarAtivoObra(btn.dataset.reativarObra, true));
+  });
+  wrap.querySelectorAll("[data-excluir-obra]").forEach(btn => {
+    btn.addEventListener("click", () => excluirObraPermanente(btn.dataset.excluirObra, btn.dataset.nomeObra));
+  });
+}
+
+function iconeLixeira() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>`;
+}
+
+async function excluirObraPermanente(id, nomeObra) {
+  // Exclusão de verdade — o padrão do sistema é sempre "desativar",
+  // mas por pedido explícito existe esta opção pra casos de engano
+  // (obra de teste, duplicada etc.). Por ser irreversível, exige
+  // digitar o nome da obra pra confirmar, não só um clique de "OK".
+  const digitado = prompt(
+    `Isso vai excluir "${nomeObra}" PERMANENTEMENTE — sem volta, diferente de desativar.\n\nPara confirmar, digite o nome exato da obra abaixo:`
+  );
+  if (digitado === null) return;
+  if (digitado.trim() !== nomeObra) {
+    alert("Nome digitado não confere. Nada foi excluído.");
+    return;
+  }
+
+  const { doc, deleteDoc } = window.fs;
+  try {
+    await deleteDoc(doc(window.firebaseDb, "obras", id));
+    await carregarObras();
+  } catch (err) {
+    console.error(err);
+    alert("Não foi possível excluir. Tente novamente.");
+  }
+}
+
+async function alternarAtivoObra(id, novoValor) {
+  const { doc, updateDoc, serverTimestamp } = window.fs;
+  const acao = novoValor ? "reativar" : "desativar";
+  if (!confirm(`Tem certeza que deseja ${acao} esta obra?`)) return;
+
+  try {
+    await updateDoc(doc(window.firebaseDb, "obras", id), { ativo: novoValor, atualizadoEm: serverTimestamp() });
+    await carregarObras();
+  } catch (err) {
+    console.error(err);
+    alert("Não foi possível atualizar. Tente novamente.");
+  }
 }
 
 async function abrirModalObra(id) {
