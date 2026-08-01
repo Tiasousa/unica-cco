@@ -79,6 +79,12 @@ const STATUS_FROTA = [
     rotulo: "Manutenção",
     badge: "atencao",
   },
+
+  {
+    valor: "parado",
+    rotulo: "Parado",
+    badge: "parada",
+  },
 ];
 
 
@@ -93,9 +99,37 @@ let frotaCache = [];
 let frotaFiltro = {
   busca: "",
   status: "todos",
+  mostrarInativos: false,
 };
 
 const cacheTiposEquipamento = {};
+
+let cacheObrasFrota = null;
+
+// ícones de placeholder por categoria, usados quando o equipamento
+// não tem foto cadastrada (nunca fica espaço vazio no card)
+function obterIconePlaceholderFrota(categoria) {
+  if (categoria === "caminhao") {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="7" width="14" height="10" rx="1.5"/><path d="M15 10h4l3 3v4h-7z"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/></svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10l6-5 6 5v10"/><path d="M4 20h16"/><path d="M10 20v-6h4v6"/></svg>`;
+}
+
+async function obterObrasFrota() {
+  if (cacheObrasFrota) return cacheObrasFrota;
+  verificarFirebaseFrota();
+  const { collection, getDocs } = window.fs;
+  const snapshot = await getDocs(collection(window.firebaseDb, "obras"));
+  const lista = [];
+  snapshot.forEach((documento) => {
+    const dados = documento.data();
+    if (dados.ativo === false) return;
+    lista.push({ id: documento.id, nome: dados.nome || "Sem nome" });
+  });
+  lista.sort((a, b) => String(a.nome).localeCompare(String(b.nome), "pt-BR"));
+  cacheObrasFrota = lista;
+  return lista;
+}
 
 
 /* =========================================================
@@ -441,6 +475,7 @@ async function renderFrota(chave) {
   frotaFiltro = {
     busca: "",
     status: "todos",
+    mostrarInativos: false,
   };
 
   area.innerHTML = `
@@ -474,6 +509,10 @@ async function renderFrota(chave) {
         >
           ${renderBotoesFiltroFrota()}
         </div>
+
+        <label class="check-inativos">
+          <input type="checkbox" id="mostrarFrotaInativos"> Mostrar desativados
+        </label>
 
         <button
           type="button"
@@ -584,6 +623,11 @@ function configurarEventosTelaFrota(
       renderizarListaFrota();
     }
   );
+
+  document.getElementById("mostrarFrotaInativos")?.addEventListener("change", (evento) => {
+    frotaFiltro.mostrarInativos = evento.target.checked;
+    renderizarListaFrota();
+  });
 }
 
 
@@ -699,25 +743,30 @@ function atualizarResumoFrota() {
     return;
   }
 
+  const ativos =
+    frotaCache.filter(
+      (item) => item.ativo !== false
+    );
+
   const total =
-    frotaCache.length;
+    ativos.length;
 
   const disponiveis =
-    frotaCache.filter(
+    ativos.filter(
       (item) =>
         item.status ===
         "disponivel"
     ).length;
 
   const emUso =
-    frotaCache.filter(
+    ativos.filter(
       (item) =>
         item.status ===
         "em_uso"
     ).length;
 
   const manutencao =
-    frotaCache.filter(
+    ativos.filter(
       (item) =>
         item.status ===
         "manutencao"
@@ -814,10 +863,6 @@ async function carregarFrota(chave) {
       const dados =
         documento.data();
 
-      if (dados.ativo === false) {
-        return;
-      }
-
       frotaCache.push({
         id: documento.id,
         ...dados,
@@ -843,6 +888,14 @@ async function carregarFrota(chave) {
           item.tipoEquipamentoId
         ] ||
         "Sem tipo";
+    });
+
+    const obrasFrota = await obterObrasFrota();
+    const mapaObrasFrota = Object.fromEntries(
+      obrasFrota.map((obra) => [obra.id, obra.nome])
+    );
+    frotaCache.forEach((item) => {
+      item._obraNome = item.obraId ? (mapaObrasFrota[item.obraId] || null) : null;
     });
 
     frotaCache.sort((a, b) => {
@@ -961,6 +1014,10 @@ function obterItensFrotaFiltrados() {
   }
 
   return frotaCache.filter((item) => {
+    if (!frotaFiltro.mostrarInativos && item.ativo === false) {
+      return false;
+    }
+
     const correspondeStatus =
       frotaFiltro.status ===
         "todos" ||
@@ -1075,36 +1132,57 @@ function renderizarListaFrota() {
           );
 
         return `
-          <article class="card-frota">
+          <article class="card-frota${item.ativo === false ? " card-frota-inativa" : ""}">
+
+            <div class="card-frota-foto${item.fotoUrl ? "" : " sem-foto"}">
+              ${item.fotoUrl
+                ? `<img src="${escaparHtmlFrota(item.fotoUrl)}" alt="${escaparHtmlFrota(item.nome || "")}" loading="lazy" onerror="this.closest('.card-frota-foto').classList.add('sem-foto'); this.remove();">`
+                : obterIconePlaceholderFrota(config.categoriaEquip)
+              }
+            </div>
 
             <div class="card-frota-topo">
 
               <span
-                class="badge ${escaparHtmlFrota(
-                  status.badge
-                )}"
+                class="badge ${item.ativo === false ? "parada" : escaparHtmlFrota(status.badge)}"
               >
-                ${escaparHtmlFrota(
-                  status.rotulo
-                )}
+                ${item.ativo === false ? "Desativado" : escaparHtmlFrota(status.rotulo)}
               </span>
 
-              <button
-                type="button"
-                class="btn-icone"
-                title="Editar ${escaparHtmlFrota(
-                  config.singular.toLowerCase()
-                )}"
-                aria-label="Editar ${escaparHtmlFrota(
-                  item.nome ||
-                  config.singular
-                )}"
-                data-editar-frota="${escaparHtmlFrota(
-                  item.id
-                )}"
-              >
-                ${obterIconeLapisFrota()}
-              </button>
+              <div class="celula-acoes">
+
+                <button
+                  type="button"
+                  class="btn-icone"
+                  title="Editar ${escaparHtmlFrota(
+                    config.singular.toLowerCase()
+                  )}"
+                  aria-label="Editar ${escaparHtmlFrota(
+                    item.nome ||
+                    config.singular
+                  )}"
+                  data-editar-frota="${escaparHtmlFrota(
+                    item.id
+                  )}"
+                >
+                  ${obterIconeLapisFrota()}
+                </button>
+
+                <button
+                  type="button"
+                  class="btn-icone"
+                  title="Mais opções"
+                  aria-label="Mais opções"
+                  data-mais-opcoes-frota="${escaparHtmlFrota(item.id)}"
+                >⋮</button>
+
+                <div class="menu-mais-opcoes" data-menu-frota="${escaparHtmlFrota(item.id)}" hidden>
+                  ${item.ativo === false
+                    ? `<button type="button" data-reativar-frota="${escaparHtmlFrota(item.id)}">Reativar</button>`
+                    : `<button type="button" data-desativar-frota="${escaparHtmlFrota(item.id)}">Desativar</button>`}
+                </div>
+
+              </div>
 
             </div>
 
@@ -1132,7 +1210,13 @@ function renderizarListaFrota() {
 
             </p>
 
-            <div class="card-frota-rodape">
+            ${item._obraNome ? `
+              <p class="card-frota-obra">
+                <span aria-hidden="true">▣</span> ${escaparHtmlFrota(item._obraNome)}
+              </p>
+            ` : ""}
+
+            <div class="card-frota-rodape card-frota-medidor-destaque">
 
               <span>
                 ${escaparHtmlFrota(
@@ -1183,6 +1267,47 @@ function renderizarListaFrota() {
         }
       );
     });
+
+  wrap.querySelectorAll("[data-mais-opcoes-frota]").forEach((botao) => {
+    botao.addEventListener("click", (evento) => {
+      evento.stopPropagation();
+      const menu = wrap.querySelector(`[data-menu-frota="${botao.dataset.maisOpcoesFrota}"]`);
+      const jaAberto = menu && !menu.hidden;
+      wrap.querySelectorAll(".menu-mais-opcoes").forEach((m) => { m.hidden = true; });
+      if (menu) menu.hidden = jaAberto;
+    });
+  });
+  wrap.querySelectorAll("[data-desativar-frota]").forEach((botao) => {
+    botao.addEventListener("click", () => alternarAtivoFrota(botao.dataset.desativarFrota, false));
+  });
+  wrap.querySelectorAll("[data-reativar-frota]").forEach((botao) => {
+    botao.addEventListener("click", () => alternarAtivoFrota(botao.dataset.reativarFrota, true));
+  });
+  if (!window._fechaMenuFrotaGlobal) {
+    window._fechaMenuFrotaGlobal = true;
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".menu-mais-opcoes").forEach((m) => { m.hidden = true; });
+    });
+  }
+}
+
+async function alternarAtivoFrota(id, novoValor) {
+  const config = obterConfigFrota(frotaAtual);
+  if (!config) return;
+  const acao = novoValor ? "reativar" : "desativar";
+  if (!confirm(`Tem certeza que deseja ${acao} este equipamento?`)) return;
+  try {
+    verificarFirebaseFrota();
+    const { doc, updateDoc, serverTimestamp } = window.fs;
+    await updateDoc(doc(window.firebaseDb, config.colecao, id), {
+      ativo: novoValor,
+      atualizadoEm: serverTimestamp(),
+    });
+    await carregarFrota(frotaAtual);
+  } catch (erro) {
+    console.error("Erro ao atualizar equipamento:", erro);
+    alert("Não foi possível atualizar. Tente novamente.");
+  }
 }
 
 
@@ -1215,6 +1340,8 @@ async function abrirModalFrota(
       await obterTiposEquipamentoFrota(
         config.categoriaEquip
       );
+
+    const obrasDisponiveis = await obterObrasFrota();
 
     fecharModalFrota();
 
@@ -1283,6 +1410,16 @@ async function abrirModalFrota(
                 required
               >
 
+            </div>
+
+            <div class="campo">
+              <label for="frotaFotoUrl">Foto (opcional — cole o link de uma imagem)</label>
+              <input type="url" id="frotaFotoUrl" value="${escaparHtmlFrota(dados?.fotoUrl || "")}" placeholder="https://...">
+              <div class="preview-foto-frota" id="previewFotoFrota">
+                ${dados?.fotoUrl
+                  ? `<img src="${escaparHtmlFrota(dados.fotoUrl)}" alt="" onerror="this.style.display='none'">`
+                  : `<span class="preview-foto-vazio">${obterIconePlaceholderFrota(config.categoriaEquip)}</span>`}
+              </div>
             </div>
 
             <div class="linha-campos">
@@ -1360,6 +1497,16 @@ async function abrirModalFrota(
 
               </div>
 
+            </div>
+
+            <div class="campo">
+              <label for="frotaObra">Obra vinculada (opcional)</label>
+              <select id="frotaObra">
+                <option value="">Nenhuma</option>
+                ${obrasDisponiveis.map((obra) => `
+                  <option value="${escaparHtmlFrota(obra.id)}" ${obra.id === dados?.obraId ? "selected" : ""}>${escaparHtmlFrota(obra.nome)}</option>
+                `).join("")}
+              </select>
             </div>
 
             <div class="linha-campos">
@@ -1605,6 +1752,19 @@ function configurarEventosModalFrota(
     }
   );
 
+  const campoFotoUrl = document.getElementById("frotaFotoUrl");
+  const previewFoto = document.getElementById("previewFotoFrota");
+  campoFotoUrl?.addEventListener("input", () => {
+    const url = campoFotoUrl.value.trim();
+    if (!previewFoto) return;
+    if (url) {
+      previewFoto.innerHTML = `<img src="${escaparHtmlFrota(url)}" alt="" onerror="this.style.display='none'">`;
+    } else {
+      const categoria = obterConfigFrota(chave)?.categoriaEquip;
+      previewFoto.innerHTML = `<span class="preview-foto-vazio">${obterIconePlaceholderFrota(categoria)}</span>`;
+    }
+  });
+
   formulario?.addEventListener(
     "submit",
     async (evento) => {
@@ -1730,6 +1890,12 @@ async function salvarFrota(
 
     tipoEquipamentoId:
       campoTipo.value,
+
+    obraId:
+      document.getElementById("frotaObra")?.value || "",
+
+    fotoUrl:
+      document.getElementById("frotaFotoUrl")?.value.trim() || "",
 
     status:
       campoStatus.value,
