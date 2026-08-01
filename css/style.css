@@ -2160,3 +2160,109 @@ body.menu-mobile-aberto {
     font-size: 21px;
   }
 }
+
+/* =========================================================
+   FROTA — foto, obra vinculada, medidor em destaque, mais opções
+   ========================================================= */
+
+.card-frota { position: relative; }
+
+.card-frota-foto {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  background: var(--borda-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-frota-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card-frota-foto.sem-foto,
+.card-frota-foto svg {
+  color: #4A4A44;
+}
+.card-frota-foto.sem-foto svg {
+  width: 42px;
+  height: 42px;
+}
+
+.card-frota-obra {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--amarelo);
+  margin-bottom: 10px;
+}
+
+.card-frota-medidor-destaque strong {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.card-frota-inativa { opacity: 0.55; }
+.card-frota-inativa:hover { opacity: 0.85; }
+
+.menu-mais-opcoes {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  z-index: 20;
+  min-width: 130px;
+  overflow: hidden;
+}
+.menu-mais-opcoes button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #C8C8C2;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  font-family: inherit;
+}
+.menu-mais-opcoes button:hover {
+  background: rgba(255,255,255,0.05);
+  color: var(--branco);
+}
+.celula-acoes { position: relative; }
+
+.preview-foto-frota {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 220px;
+  aspect-ratio: 16 / 10;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--borda-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preview-foto-frota img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.preview-foto-vazio svg {
+  width: 34px;
+  height: 34px;
+  color: #4A4A44;
+}
+
+@media (max-width: 480px) {
+  .card-frota-foto { aspect-ratio: 16 / 9; }
+}
