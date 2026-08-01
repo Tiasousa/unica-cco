@@ -131,6 +131,33 @@ async function obterObrasFrota() {
   return lista;
 }
 
+// Comprime a foto no próprio navegador antes de salvar (sem Firebase
+// Storage, a foto vira texto e vai junto com o resto do cadastro no
+// Firestore — por isso precisa ser pequena, não em resolução total).
+function comprimirImagemFrota(arquivo, maxLargura = 640, qualidade = 0.65) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = (evento) => {
+      const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(1, maxLargura / img.width);
+        const largura = Math.round(img.width * escala);
+        const altura = Math.round(img.height * escala);
+        const canvas = document.createElement("canvas");
+        canvas.width = largura;
+        canvas.height = altura;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, largura, altura);
+        resolve(canvas.toDataURL("image/jpeg", qualidade));
+      };
+      img.onerror = () => reject(new Error("Não foi possível ler essa imagem."));
+      img.src = evento.target.result;
+    };
+    leitor.onerror = () => reject(new Error("Não foi possível ler esse arquivo."));
+    leitor.readAsDataURL(arquivo);
+  });
+}
+
 
 /* =========================================================
    FUNÇÕES AUXILIARES
@@ -1413,13 +1440,16 @@ async function abrirModalFrota(
             </div>
 
             <div class="campo">
-              <label for="frotaFotoUrl">Foto (opcional — cole o link de uma imagem)</label>
-              <input type="url" id="frotaFotoUrl" value="${escaparHtmlFrota(dados?.fotoUrl || "")}" placeholder="https://...">
+              <label for="frotaFotoArquivo">Foto (opcional)</label>
+              <input type="file" id="frotaFotoArquivo" accept="image/*" capture="environment">
+              <input type="hidden" id="frotaFotoUrl" value="${escaparHtmlFrota(dados?.fotoUrl || "")}">
               <div class="preview-foto-frota" id="previewFotoFrota">
                 ${dados?.fotoUrl
-                  ? `<img src="${escaparHtmlFrota(dados.fotoUrl)}" alt="" onerror="this.style.display='none'">`
+                  ? `<img src="${escaparHtmlFrota(dados.fotoUrl)}" alt="">`
                   : `<span class="preview-foto-vazio">${obterIconePlaceholderFrota(config.categoriaEquip)}</span>`}
               </div>
+              <button type="button" class="btn-secundario" id="btnRemoverFotoFrota" style="margin-top:8px;">Remover foto</button>
+              <span class="campo-ajuda">Tire uma foto ou escolha da galeria. Ela é comprimida automaticamente antes de salvar.</span>
             </div>
 
             <div class="linha-campos">
@@ -1752,17 +1782,49 @@ function configurarEventosModalFrota(
     }
   );
 
-  const campoFotoUrl = document.getElementById("frotaFotoUrl");
+  const campoFotoArquivo = document.getElementById("frotaFotoArquivo");
+  const campoFotoUrlOculto = document.getElementById("frotaFotoUrl");
   const previewFoto = document.getElementById("previewFotoFrota");
-  campoFotoUrl?.addEventListener("input", () => {
-    const url = campoFotoUrl.value.trim();
+  const botaoRemoverFoto = document.getElementById("btnRemoverFotoFrota");
+
+  function limparPreviewFoto() {
     if (!previewFoto) return;
-    if (url) {
-      previewFoto.innerHTML = `<img src="${escaparHtmlFrota(url)}" alt="" onerror="this.style.display='none'">`;
-    } else {
-      const categoria = obterConfigFrota(chave)?.categoriaEquip;
-      previewFoto.innerHTML = `<span class="preview-foto-vazio">${obterIconePlaceholderFrota(categoria)}</span>`;
+    const categoria = obterConfigFrota(chave)?.categoriaEquip;
+    previewFoto.innerHTML = `<span class="preview-foto-vazio">${obterIconePlaceholderFrota(categoria)}</span>`;
+  }
+
+  campoFotoArquivo?.addEventListener("change", async () => {
+    const arquivo = campoFotoArquivo.files?.[0];
+    if (!arquivo) return;
+
+    if (!arquivo.type.startsWith("image/")) {
+      alert("Selecione um arquivo de imagem.");
+      campoFotoArquivo.value = "";
+      return;
     }
+
+    try {
+      const dataUrl = await comprimirImagemFrota(arquivo);
+
+      if (dataUrl.length > 700000) {
+        alert("Essa imagem ficou grande demais mesmo depois de comprimida. Tente outra foto.");
+        campoFotoArquivo.value = "";
+        return;
+      }
+
+      campoFotoUrlOculto.value = dataUrl;
+      if (previewFoto) previewFoto.innerHTML = `<img src="${dataUrl}" alt="">`;
+    } catch (erro) {
+      console.error("Erro ao processar foto:", erro);
+      alert("Não foi possível processar essa foto. Tente outra.");
+      campoFotoArquivo.value = "";
+    }
+  });
+
+  botaoRemoverFoto?.addEventListener("click", () => {
+    if (campoFotoUrlOculto) campoFotoUrlOculto.value = "";
+    if (campoFotoArquivo) campoFotoArquivo.value = "";
+    limparPreviewFoto();
   });
 
   formulario?.addEventListener(
