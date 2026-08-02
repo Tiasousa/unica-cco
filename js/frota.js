@@ -2039,8 +2039,123 @@ async function salvarFrota(
 
 
 /* =========================================================
-   CONFIRMAÇÃO DE CARREGAMENTO
+   VISÃO GERAL DA FROTA
+   ---------------------------------------------------------
+   Painel único juntando Máquinas e Caminhões: resumo por
+   status e lista de equipamentos que precisam de atenção
+   (em manutenção ou parados).
    ========================================================= */
+
+async function renderFrotaVisaoGeral() {
+  const area = document.getElementById("areaPagina");
+  if (!area) return;
+
+  area.innerHTML = `
+    <div class="em-construcao">
+      <div class="loading-spinner"></div>
+      <p>Carregando visão geral da frota...</p>
+    </div>
+  `;
+
+  try {
+    verificarFirebaseFrota();
+    const { collection, getDocs } = window.fs;
+
+    const [snapMaquinas, snapCaminhoes] = await Promise.all([
+      getDocs(collection(window.firebaseDb, "maquinas")),
+      getDocs(collection(window.firebaseDb, "caminhoes")),
+    ]);
+
+    const todos = [];
+
+    const juntar = (snapshot, chaveConfig) => {
+      const config = FROTA_CONFIG[chaveConfig];
+      snapshot.forEach((documento) => {
+        const dados = documento.data();
+        if (dados.ativo === false) return;
+        todos.push({
+          id: documento.id,
+          colecao: chaveConfig,
+          tipoRotulo: config.singular,
+          nome: dados.nome || "Sem nome",
+          identificacao: dados[config.campoIdentificador.id] || "—",
+          status: dados.status || "disponivel",
+        });
+      });
+    };
+
+    juntar(snapMaquinas, "maquinas");
+    juntar(snapCaminhoes, "caminhoes");
+
+    const total = todos.length;
+    const contarPorStatus = (valor) => todos.filter((e) => e.status === valor).length;
+    const disponiveis = contarPorStatus("disponivel");
+    const emUso = contarPorStatus("em_uso");
+    const manutencao = contarPorStatus("manutencao");
+    const parados = contarPorStatus("parado");
+    const precisamAtencao = todos.filter((e) => e.status === "manutencao" || e.status === "parado");
+
+    if (typeof window.atualizarContadorNavegacao === "function") {
+      window.atualizarContadorNavegacao("alertaFrota", precisamAtencao.length);
+    }
+
+    area.innerHTML = `
+      <section class="painel-cadastro">
+        <div class="grid-indicadores">
+          ${renderCardResumoFrota("Total", total, "Máquinas e caminhões ativos", "tipo-frota")}
+          ${renderCardResumoFrota("Disponíveis", disponiveis, "Prontos para operação", "tipo-frota")}
+          ${renderCardResumoFrota("Em uso", emUso, "Em operação agora", "tipo-frota")}
+          ${renderCardResumoFrota("Manutenção", manutencao, "Precisam de atenção", "tipo-atencao")}
+          ${renderCardResumoFrota("Parados", parados, "Fora de operação", "tipo-atencao")}
+        </div>
+
+        <div class="painel" style="margin-top:20px;">
+          <div class="painel-titulo">
+            <h2>Precisam de atenção</h2>
+          </div>
+
+          ${precisamAtencao.length === 0
+            ? `<p class="cadastro-vazio">Nenhum equipamento em manutenção ou parado no momento.</p>`
+            : `<div class="alertas-lista">
+                ${precisamAtencao.map((e) => `
+                  <button type="button" class="alerta-card" data-ir-frota="${e.colecao}">
+                    <div class="alerta-card-icone">${e.status === "manutencao" ? "⚠" : "■"}</div>
+                    <div class="alerta-card-conteudo">
+                      <strong>${escaparHtmlFrota(e.nome)} · ${escaparHtmlFrota(e.identificacao)}</strong>
+                      <span>${escaparHtmlFrota(e.tipoRotulo)} · ${e.status === "manutencao" ? "Em manutenção" : "Parado"}</span>
+                    </div>
+                    <div class="alerta-card-seta">›</div>
+                  </button>
+                `).join("")}
+              </div>`
+          }
+        </div>
+      </section>
+    `;
+
+    area.querySelectorAll("[data-ir-frota]").forEach((botao) => {
+      botao.addEventListener("click", () => {
+        if (typeof window.irParaPagina === "function") {
+          window.irParaPagina(botao.dataset.irFrota);
+        }
+      });
+    });
+
+  } catch (erro) {
+    console.error("Erro ao carregar visão geral da frota:", erro);
+    area.innerHTML = `
+      <div class="em-construcao estado-erro">
+        <h3>Não foi possível carregar</h3>
+        <p class="etapa">Verifique sua conexão com a internet e tente novamente.</p>
+        <button type="button" class="btn-primario" id="btnTentarVisaoGeralFrota">Tentar novamente</button>
+      </div>
+    `;
+    document.getElementById("btnTentarVisaoGeralFrota")?.addEventListener("click", renderFrotaVisaoGeral);
+  }
+}
+
+window.renderFrotaVisaoGeral = renderFrotaVisaoGeral;
+
 
 console.log(
   "Módulo frota.js carregado com modal protegido."
