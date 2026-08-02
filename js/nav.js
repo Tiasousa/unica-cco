@@ -194,10 +194,7 @@ const PAGINAS_CONFIG = {
    ========================================================= */
 
 const ETAPA_MODULO = {
-  apontamento: "Etapa 6 — Apontamento Diário",
-
   "frota-visao-geral": "Etapa 5 — Dashboard da Frota",
-  abastecimentos: "Etapa 5 — Abastecimentos",
   manutencoes: "Etapa 5 — Manutenções",
   checklists: "Etapa 5 — Checklists",
   "documentos-frota": "Etapa 5 — Documentos da Frota",
@@ -442,6 +439,9 @@ async function renderizarPagina(pagina) {
     case "abastecimentos":
       return executarModulo("renderAbastecimentos");
 
+    case "apontamento":
+      return executarModulo("renderApontamento");
+
 
     /* Cadastros gerais */
     case "cad-servicos":
@@ -460,7 +460,6 @@ async function renderizarPagina(pagina) {
 
 
     /* Módulos preparados para desenvolvimento */
-    case "apontamento":
     case "frota-visao-geral":
     case "manutencoes":
     case "checklists":
