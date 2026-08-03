@@ -2181,7 +2181,7 @@ body.menu-mobile-aberto {
 .card-frota-foto img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .card-frota-foto.sem-foto,
 .card-frota-foto svg {
@@ -2255,7 +2255,7 @@ body.menu-mobile-aberto {
 .preview-foto-frota img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .preview-foto-vazio svg {
   width: 34px;
