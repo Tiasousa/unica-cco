@@ -55,6 +55,12 @@ const CADASTROS_CONFIG = {
       { id: "nome", label: "Nome", tipo: "texto", obrigatorio: true },
       { id: "funcaoId", label: "Função", tipo: "referencia", colecaoRef: "cadastros_funcoes" },
       { id: "telefone", label: "Telefone", tipo: "texto" },
+      { id: "cpf", label: "CPF", tipo: "texto" },
+      { id: "rg", label: "RG", tipo: "texto" },
+      { id: "dataNascimento", label: "Data de nascimento", tipo: "data" },
+      { id: "endereco", label: "Endereço", tipo: "texto" },
+      { id: "dataAdmissao", label: "Data de admissão", tipo: "data" },
+      { id: "salario", label: "Salário (R$)", tipo: "numero" },
     ],
   },
   "cad-funcoes": {
@@ -171,6 +177,11 @@ function formatarValorCampo(item, campo) {
   if (valor === undefined || valor === null || valor === "") return "—";
   if (campo.tipo === "referencia") return campo._mapaRef?.[valor] || "—";
   if (campo.tipo === "select") return campo.opcoes.find(o => o.valor === valor)?.rotulo || valor;
+  if (campo.tipo === "data") {
+    const partes = String(valor).split("-");
+    if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    return valor;
+  }
   return valor;
 }
 
@@ -281,6 +292,13 @@ function renderCampoForm(campo, dados) {
       <div class="campo">
         <label>${campo.label}</label>
         <input type="number" id="campo_${campo.id}" value="${escaparHtml(valorAtual)}">
+      </div>`;
+  }
+  if (campo.tipo === "data") {
+    return `
+      <div class="campo">
+        <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
+        <input type="date" id="campo_${campo.id}" value="${escaparHtml(valorAtual)}" ${campo.obrigatorio ? "required" : ""}>
       </div>`;
   }
   return `
