@@ -109,6 +109,9 @@ function iconeCheck() {
 function iconeX() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>`;
 }
+function iconeDocumento() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>`;
+}
 
 // Escapa texto antes de colocar em innerHTML, pra evitar que alguém
 // digite algo tipo <script> num campo de cadastro e isso seja executado
@@ -232,6 +235,9 @@ async function carregarTabelaCadastro(chave) {
               ${colsSecundarias.map(c => `<td>${escaparHtml(formatarValorCampo(item, c))}</td>`).join("")}
               <td>${item.ativo === false ? '<span class="badge parada">Inativo</span>' : '<span class="badge ativa">Ativo</span>'}</td>
               <td class="celula-acoes">
+                ${chave === "cad-funcionarios"
+                  ? `<button class="btn-icone" title="Documentos" data-documentos="${item.id}" data-nome-func="${escaparHtml(item.nome || "")}">${iconeDocumento()}</button>`
+                  : ""}
                 <button class="btn-icone" title="Editar" data-editar="${item.id}">${iconeLapis()}</button>
                 ${item.ativo === false
                   ? `<button class="btn-icone" title="Reativar" data-reativar="${item.id}">${iconeCheck()}</button>`
@@ -251,6 +257,13 @@ async function carregarTabelaCadastro(chave) {
     });
     wrap.querySelectorAll("[data-reativar]").forEach(btn => {
       btn.addEventListener("click", () => alternarAtivo(chave, btn.dataset.reativar, true));
+    });
+    wrap.querySelectorAll("[data-documentos]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (typeof window.abrirDocumentosFuncionario === "function") {
+          window.abrirDocumentosFuncionario(btn.dataset.documentos, btn.dataset.nomeFunc);
+        }
+      });
     });
   } catch (err) {
     console.error(err);
