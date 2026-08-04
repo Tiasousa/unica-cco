@@ -2238,6 +2238,14 @@ body.menu-mobile-aberto {
   background: rgba(255,255,255,0.05);
   color: var(--branco);
 }
+.menu-mais-opcoes button.opcao-perigo {
+  color: #8A5555;
+  border-top: 1px solid var(--borda-card);
+}
+.menu-mais-opcoes button.opcao-perigo:hover {
+  background: rgba(200,60,60,0.12);
+  color: var(--perigo);
+}
 .celula-acoes { position: relative; }
 
 .preview-foto-frota {
