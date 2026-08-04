@@ -2246,6 +2246,63 @@ body.menu-mobile-aberto {
   background: rgba(200,60,60,0.12);
   color: var(--perigo);
 }
+
+/* =========================================================
+   DOCUMENTOS DO FUNCIONÁRIO
+   ========================================================= */
+.modal-documentos {
+  max-width: 560px;
+}
+.lista-docs-unicos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.linha-doc-unico {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.linha-doc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 13.5px;
+}
+.linha-doc-info a {
+  color: var(--amarelo);
+  font-size: 12.5px;
+  width: fit-content;
+}
+.doc-data {
+  color: #7A7A77;
+  font-size: 11.5px;
+}
+.doc-vazio {
+  color: #7A7A77;
+  font-size: 12.5px;
+}
+.doc-carregando {
+  color: #7A7A77;
+  font-size: 13px;
+}
+.doc-erro {
+  color: var(--perigo);
+  font-size: 12.5px;
+  min-height: 14px;
+  margin-top: 4px;
+}
+.btn-upload-doc {
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 12.5px;
+  padding: 8px 12px;
+}
 .celula-acoes { position: relative; }
 
 .preview-foto-frota {
