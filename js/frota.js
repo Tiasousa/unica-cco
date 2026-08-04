@@ -996,6 +996,11 @@ async function carregarFrota(chave) {
 function atualizarContadorMenuFrota(
   config
 ) {
+  const ativosMenu =
+    frotaCache.filter(
+      (item) => item.ativo !== false
+    );
+
   if (
     typeof window
       .atualizarContadorNavegacao ===
@@ -1003,7 +1008,7 @@ function atualizarContadorMenuFrota(
   ) {
     window.atualizarContadorNavegacao(
       config.contadorMenu,
-      frotaCache.length
+      ativosMenu.length
     );
 
     return;
@@ -1019,10 +1024,10 @@ function atualizarContadorMenuFrota(
   }
 
   contador.textContent =
-    String(frotaCache.length);
+    String(ativosMenu.length);
 
   contador.hidden =
-    frotaCache.length === 0;
+    ativosMenu.length === 0;
 }
 
 
@@ -1207,6 +1212,7 @@ function renderizarListaFrota() {
                   ${item.ativo === false
                     ? `<button type="button" data-reativar-frota="${escaparHtmlFrota(item.id)}">Reativar</button>`
                     : `<button type="button" data-desativar-frota="${escaparHtmlFrota(item.id)}">Desativar</button>`}
+                  <button type="button" class="opcao-perigo" data-excluir-frota="${escaparHtmlFrota(item.id)}" data-nome-frota="${escaparHtmlFrota(item.nome || "Sem nome")}">Excluir permanentemente</button>
                 </div>
 
               </div>
@@ -1310,11 +1316,43 @@ function renderizarListaFrota() {
   wrap.querySelectorAll("[data-reativar-frota]").forEach((botao) => {
     botao.addEventListener("click", () => alternarAtivoFrota(botao.dataset.reativarFrota, true));
   });
+  wrap.querySelectorAll("[data-excluir-frota]").forEach((botao) => {
+    botao.addEventListener("click", () => excluirFrotaPermanente(botao.dataset.excluirFrota, botao.dataset.nomeFrota));
+  });
   if (!window._fechaMenuFrotaGlobal) {
     window._fechaMenuFrotaGlobal = true;
     document.addEventListener("click", () => {
       document.querySelectorAll(".menu-mais-opcoes").forEach((m) => { m.hidden = true; });
     });
+  }
+}
+
+// Exclusão de verdade — o padrão do sistema é sempre "desativar",
+// mas por pedido explícito existe esta opção pra casos de engano
+// (equipamento lançado na categoria errada, cadastro duplicado etc.).
+// Por ser irreversível, exige digitar o nome do equipamento pra
+// confirmar, não só um clique de "OK".
+async function excluirFrotaPermanente(id, nomeItem) {
+  const config = obterConfigFrota(frotaAtual);
+  if (!config) return;
+
+  const digitado = prompt(
+    `Isso vai excluir "${nomeItem}" PERMANENTEMENTE — sem volta, diferente de desativar.\n\nPara confirmar, digite o nome exato do equipamento abaixo:`
+  );
+  if (digitado === null) return;
+  if (digitado.trim() !== nomeItem) {
+    alert("Nome digitado não confere. Nada foi excluído.");
+    return;
+  }
+
+  try {
+    verificarFirebaseFrota();
+    const { doc, deleteDoc } = window.fs;
+    await deleteDoc(doc(window.firebaseDb, config.colecao, id));
+    await carregarFrota(frotaAtual);
+  } catch (erro) {
+    console.error("Erro ao excluir equipamento:", erro);
+    alert("Não foi possível excluir. Tente novamente.");
   }
 }
 
