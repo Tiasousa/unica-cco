@@ -40,6 +40,23 @@
     return (anoAtual - anoInicio) * 12 + (mesAtual - mesInicio) + 1;
   }
 
+  // Caminho inverso: a pessoa digita a parcela em que o empréstimo
+  // está HOJE (o que está escrito no holerite, ex: "8 de 12") — o
+  // sistema calcula o mês/ano de início por trás, pra continuar
+  // avançando sozinho todo mês sem precisar de conta manual.
+  function calcularInicioAPartirDaParcelaAtual(parcelaAtual) {
+    const hoje = new Date();
+    let mes = hoje.getMonth() + 1;
+    let ano = hoje.getFullYear();
+    let restante = parcelaAtual - 1;
+    mes -= restante;
+    while (mes < 1) {
+      mes += 12;
+      ano -= 1;
+    }
+    return { mesInicio: mes, anoInicio: ano };
+  }
+
   window.abrirConsignadosFuncionario = async function (id, nome) {
     funcionarioId = id;
     funcionarioNome = nome || "";
@@ -51,12 +68,9 @@
   function renderModalConsignados() {
     fecharModalConsignados();
 
-    const anoAtual = new Date().getFullYear();
-    const mesAtual = new Date().getMonth() + 1;
-
     const html = `
       <div class="modal-overlay" id="modalConsignadosOverlay">
-        <div class="modal-cadastro modal-documentos">
+        <div class="modal-cadastro modal-consignados">
           <div class="modal-cabecalho">
             <h3>Consignados — ${escaparHtmlCons(funcionarioNome)}</h3>
             <button class="btn-fechar-modal" id="btnFecharConsignados" type="button">
@@ -64,48 +78,43 @@
             </button>
           </div>
 
-          <form id="formConsignado" class="form-consignado">
+          <form id="formConsignado" class="form-consignado form-consignado-linha">
             <input type="hidden" id="consignadoEditandoId" value="">
-            <div class="campo">
+            <div class="campo campo-descricao-cons">
               <label>Descrição</label>
               <input type="text" id="consDescricao" placeholder="Ex: Empréstimo Consignado, Consignado 2..." required>
             </div>
-            <div class="linha-campos-cons">
-              <div class="campo">
-                <label>Valor da parcela</label>
-                <input type="number" id="consValorParcela" step="0.01" min="0" required>
-              </div>
-              <div class="campo">
-                <label>Total de parcelas</label>
-                <input type="number" id="consTotalParcelas" min="1" step="1" required>
-              </div>
+            <div class="campo">
+              <label>Valor da parcela</label>
+              <input type="number" id="consValorParcela" step="0.01" min="0" required>
             </div>
-            <div class="linha-campos-cons">
-              <div class="campo">
-                <label>Mês da 1ª parcela</label>
-                <select id="consMesInicio">
-                  ${MESES.map((m, i) => `<option value="${i + 1}" ${i + 1 === mesAtual ? "selected" : ""}>${m}</option>`).join("")}
-                </select>
-              </div>
-              <div class="campo">
-                <label>Ano da 1ª parcela</label>
-                <input type="number" id="consAnoInicio" value="${anoAtual}" min="2015" max="2100">
-              </div>
+            <div class="campo">
+              <label>Total de parcelas</label>
+              <input type="number" id="consTotalParcelas" min="1" step="1" required>
             </div>
-            <div class="acoes-form-consignado">
-              <button type="button" class="btn-secundario" id="btnCancelarEdicaoCons" hidden>Cancelar edição</button>
-              <button type="submit" class="btn-primario" id="btnSalvarConsignado">Adicionar consignado</button>
+            <div class="campo">
+              <label>Parcela atual</label>
+              <input type="number" id="consParcelaAtual" min="1" step="1" value="1" required title="Em qual parcela o empréstimo está hoje — o que está escrito no holerite, ex: 8 de 12 → digita 8">
+            </div>
+            <div class="campo campo-botao-cons">
+              <button type="button" class="btn-secundario" id="btnCancelarEdicaoCons" hidden>Cancelar</button>
+              <button type="submit" class="btn-primario" id="btnSalvarConsignado">Adicionar</button>
             </div>
           </form>
           <p class="doc-erro" id="consErro"></p>
 
-          <h4 class="doc-subtitulo">Ativos</h4>
-          <div id="listaConsignadosAtivos" class="lista-consignados">
-            <p class="doc-carregando">Carregando...</p>
+          <div class="colunas-consignados">
+            <div class="coluna-consignados">
+              <h4 class="doc-subtitulo">Ativos</h4>
+              <div id="listaConsignadosAtivos" class="lista-consignados">
+                <p class="doc-carregando">Carregando...</p>
+              </div>
+            </div>
+            <div class="coluna-consignados">
+              <h4 class="doc-subtitulo doc-subtitulo-quitados" id="tituloQuitados" hidden>Quitados</h4>
+              <div id="listaConsignadosQuitados" class="lista-consignados"></div>
+            </div>
           </div>
-
-          <h4 class="doc-subtitulo doc-subtitulo-quitados" id="tituloQuitados" hidden>Quitados</h4>
-          <div id="listaConsignadosQuitados" class="lista-consignados"></div>
         </div>
       </div>`;
 
@@ -132,9 +141,8 @@
     editandoId = null;
     document.getElementById("formConsignado").reset();
     document.getElementById("consignadoEditandoId").value = "";
-    document.getElementById("consMesInicio").value = String(new Date().getMonth() + 1);
-    document.getElementById("consAnoInicio").value = String(new Date().getFullYear());
-    document.getElementById("btnSalvarConsignado").textContent = "Adicionar consignado";
+    document.getElementById("consParcelaAtual").value = "1";
+    document.getElementById("btnSalvarConsignado").textContent = "Adicionar";
     document.getElementById("btnCancelarEdicaoCons").hidden = true;
   }
 
@@ -211,8 +219,9 @@
     document.getElementById("consDescricao").value = item.descricao || "";
     document.getElementById("consValorParcela").value = item.valorParcela || "";
     document.getElementById("consTotalParcelas").value = item.totalParcelas || "";
-    document.getElementById("consMesInicio").value = String(item.mesInicio);
-    document.getElementById("consAnoInicio").value = String(item.anoInicio);
+    document.getElementById("consParcelaAtual").value = String(
+      calcularParcelaAtual(item.mesInicio, item.anoInicio)
+    );
     document.getElementById("btnSalvarConsignado").textContent = "Salvar alterações";
     document.getElementById("btnCancelarEdicaoCons").hidden = false;
     document.getElementById("formConsignado").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -225,13 +234,18 @@
     const descricao = document.getElementById("consDescricao").value.trim();
     const valorParcela = Number(document.getElementById("consValorParcela").value);
     const totalParcelas = Number(document.getElementById("consTotalParcelas").value);
-    const mesInicio = Number(document.getElementById("consMesInicio").value);
-    const anoInicio = Number(document.getElementById("consAnoInicio").value);
+    const parcelaAtualDigitada = Number(document.getElementById("consParcelaAtual").value);
 
-    if (!descricao || !valorParcela || !totalParcelas) {
-      mostrarErroCons("Preenche descrição, valor da parcela e total de parcelas.");
+    if (!descricao || !valorParcela || !totalParcelas || !parcelaAtualDigitada) {
+      mostrarErroCons("Preenche descrição, valor da parcela, total de parcelas e parcela atual.");
       return;
     }
+    if (parcelaAtualDigitada > totalParcelas) {
+      mostrarErroCons("A parcela atual não pode ser maior que o total de parcelas.");
+      return;
+    }
+
+    const { mesInicio, anoInicio } = calcularInicioAPartirDaParcelaAtual(parcelaAtualDigitada);
 
     try {
       const { collection, doc, addDoc, updateDoc, serverTimestamp } = window.fs;
