@@ -2474,7 +2474,7 @@ body.menu-mobile-aberto {
    VALE (ADIANTAMENTO)
    ========================================================= */
 .modulo-vale {
-  max-width: 720px;
+  max-width: 100%;
 }
 .btn-vale-adicionar {
   display: flex;
@@ -2515,6 +2515,13 @@ body.menu-mobile-aberto {
 .form-vale .campo {
   flex: 1;
   min-width: 150px;
+}
+.campo-funcionario-vale {
+  flex: 2.4 !important;
+  min-width: 260px !important;
+}
+.form-vale select#valeFuncionarioId {
+  width: 100%;
 }
 .campo-botao-vale {
   flex: 0 0 auto !important;
