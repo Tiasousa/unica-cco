@@ -18,6 +18,12 @@ const PAGINAS_CONFIG = {
     grupo: null,
   },
 
+  vale: {
+    titulo: "Vale",
+    subtitulo: "Adiantamentos do mês vigente",
+    grupo: null,
+  },
+
   obras: {
     titulo: "Obras",
     subtitulo: "Cadastro e acompanhamento das obras",
@@ -422,6 +428,10 @@ async function renderizarPagina(pagina) {
     /* Central */
     case "central":
       return executarModulo("renderCentral");
+
+    /* Vale */
+    case "vale":
+      return executarModulo("renderVale");
 
 
     /* Obras */
