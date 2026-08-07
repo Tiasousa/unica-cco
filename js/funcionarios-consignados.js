@@ -107,18 +107,13 @@
             <p class="doc-carregando">Carregando resumo...</p>
           </div>
 
-          <div class="colunas-consignados">
-            <div class="coluna-consignados">
-              <h4 class="doc-subtitulo">Ativos</h4>
-              <div id="listaConsignadosAtivos" class="lista-consignados">
-                <p class="doc-carregando">Carregando...</p>
-              </div>
-            </div>
-            <div class="coluna-consignados">
-              <h4 class="doc-subtitulo doc-subtitulo-quitados" id="tituloQuitados" hidden>Quitados</h4>
-              <div id="listaConsignadosQuitados" class="lista-consignados"></div>
-            </div>
+          <h4 class="doc-subtitulo">Ativos</h4>
+          <div id="listaConsignadosAtivos" class="lista-consignados">
+            <p class="doc-carregando">Carregando...</p>
           </div>
+
+          <h4 class="doc-subtitulo doc-subtitulo-quitados" id="tituloQuitados" hidden>Quitados</h4>
+          <div id="listaConsignadosQuitados" class="lista-consignados"></div>
         </div>
       </div>`;
 
