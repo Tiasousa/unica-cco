@@ -56,7 +56,7 @@ async function renderVale() {
 
       <form id="formVale" class="form-vale" hidden>
         <input type="hidden" id="valeEditandoId" value="">
-        <div class="campo">
+        <div class="campo campo-funcionario-vale">
           <label>Funcionário</label>
           <select id="valeFuncionarioId" required></select>
         </div>
