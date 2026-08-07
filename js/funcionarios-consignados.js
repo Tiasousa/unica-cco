@@ -62,7 +62,7 @@
     funcionarioNome = nome || "";
     editandoId = null;
     renderModalConsignados();
-    await carregarConsignados();
+    await Promise.all([carregarConsignados(), atualizarResumoFinanceiroFunc()]);
   };
 
   function renderModalConsignados() {
@@ -102,6 +102,10 @@
             </div>
           </form>
           <p class="doc-erro" id="consErro"></p>
+
+          <div class="grid-indicadores grid-indicadores-cons" id="resumoFinanceiroFunc">
+            <p class="doc-carregando">Carregando resumo...</p>
+          </div>
 
           <div class="colunas-consignados">
             <div class="coluna-consignados">
@@ -264,7 +268,7 @@
       }
 
       cancelarEdicaoConsignado();
-      await carregarConsignados();
+      await Promise.all([carregarConsignados(), atualizarResumoFinanceiroFunc()]);
     } catch (erro) {
       console.error("Erro ao salvar consignado:", erro);
       mostrarErroCons("Não foi possível salvar. Tente novamente.");
@@ -278,10 +282,63 @@
     try {
       const { doc, deleteDoc } = window.fs;
       await deleteDoc(doc(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "consignados", id));
-      await carregarConsignados();
+      await Promise.all([carregarConsignados(), atualizarResumoFinanceiroFunc()]);
     } catch (erro) {
       console.error("Erro ao excluir consignado:", erro);
       mostrarErroCons("Não foi possível excluir. Tente novamente.");
+    }
+  }
+
+  // ---------- Resumo financeiro (Salário / Empréstimo / Vale / Sobra) ----------
+
+  function renderCardResumoCons(titulo, valor, classe) {
+    return `
+      <article class="card-indicador ${classe}">
+        <div class="topo"><span class="eyebrow">${titulo}</span></div>
+        <div class="valor">${valor}</div>
+      </article>`;
+  }
+
+  async function atualizarResumoFinanceiroFunc() {
+    const wrap = document.getElementById("resumoFinanceiroFunc");
+    if (!wrap) return;
+
+    try {
+      const { doc, getDoc, collection, getDocs } = window.fs;
+
+      // Salário — vem do cadastro do funcionário
+      const snapFunc = await getDoc(doc(window.firebaseDb, "cadastros_funcionarios", funcionarioId));
+      const salario = snapFunc.exists() ? Number(snapFunc.data().salario) || 0 : 0;
+
+      // Total de empréstimo — soma das parcelas dos consignados ainda ativos
+      const snapCons = await getDocs(
+        collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "consignados")
+      );
+      let totalEmprestimo = 0;
+      snapCons.forEach((d) => {
+        const item = d.data();
+        const parcelaAtual = calcularParcelaAtual(item.mesInicio, item.anoInicio);
+        if (parcelaAtual <= item.totalParcelas) {
+          totalEmprestimo += Number(item.valorParcela) || 0;
+        }
+      });
+
+      // Vale do mês vigente — vem do módulo Vale (vale.js)
+      const totalVale = typeof window.obterTotalValeMesFuncionario === "function"
+        ? await window.obterTotalValeMesFuncionario(funcionarioId)
+        : 0;
+
+      const sobra = salario - totalEmprestimo - totalVale;
+
+      wrap.innerHTML = `
+        ${renderCardResumoCons("Salário", formatarMoeda(salario), "")}
+        ${renderCardResumoCons("Empréstimo", formatarMoeda(totalEmprestimo), "tipo-atencao")}
+        ${renderCardResumoCons("Vale (mês vigente)", formatarMoeda(totalVale), "tipo-atencao")}
+        ${renderCardResumoCons("Sobra", formatarMoeda(sobra), sobra < 0 ? "tipo-atencao" : "tipo-frota")}
+      `;
+    } catch (erro) {
+      console.error("Erro ao calcular resumo financeiro:", erro);
+      wrap.innerHTML = `<p class="doc-erro">Não foi possível calcular o resumo.</p>`;
     }
   }
 })();
