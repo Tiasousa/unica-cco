@@ -112,6 +112,9 @@ function iconeX() {
 function iconeDocumento() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>`;
 }
+function iconeConsignado() {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
+}
 
 // Escapa texto antes de colocar em innerHTML, pra evitar que alguém
 // digite algo tipo <script> num campo de cadastro e isso seja executado
@@ -236,7 +239,8 @@ async function carregarTabelaCadastro(chave) {
               <td>${item.ativo === false ? '<span class="badge parada">Inativo</span>' : '<span class="badge ativa">Ativo</span>'}</td>
               <td class="celula-acoes">
                 ${chave === "cad-funcionarios"
-                  ? `<button class="btn-icone" title="Documentos" data-documentos="${item.id}" data-nome-func="${escaparHtml(item.nome || "")}">${iconeDocumento()}</button>`
+                  ? `<button class="btn-icone" title="Documentos" data-documentos="${item.id}" data-nome-func="${escaparHtml(item.nome || "")}">${iconeDocumento()}</button>
+                     <button class="btn-icone" title="Consignados" data-consignados="${item.id}" data-nome-func2="${escaparHtml(item.nome || "")}">${iconeConsignado()}</button>`
                   : ""}
                 <button class="btn-icone" title="Editar" data-editar="${item.id}">${iconeLapis()}</button>
                 ${item.ativo === false
@@ -262,6 +266,13 @@ async function carregarTabelaCadastro(chave) {
       btn.addEventListener("click", () => {
         if (typeof window.abrirDocumentosFuncionario === "function") {
           window.abrirDocumentosFuncionario(btn.dataset.documentos, btn.dataset.nomeFunc);
+        }
+      });
+    });
+    wrap.querySelectorAll("[data-consignados]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (typeof window.abrirConsignadosFuncionario === "function") {
+          window.abrirConsignadosFuncionario(btn.dataset.consignados, btn.dataset.nomeFunc2);
         }
       });
     });
