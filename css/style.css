@@ -2268,8 +2268,8 @@ body.menu-mobile-aberto {
   max-width: 560px;
 }
 .modal-consignados {
-  max-width: 920px;
-  width: 92vw;
+  max-width: 1180px;
+  width: 95vw;
 }
 .lista-docs-unicos {
   display: flex;
@@ -2360,20 +2360,7 @@ body.menu-mobile-aberto {
   display: flex;
   gap: 8px;
 }
-.colunas-consignados {
-  display: flex;
-  gap: 24px;
-  margin-top: 18px;
-}
-.coluna-consignados {
-  flex: 1;
-  min-width: 0;
-}
 @media (max-width: 720px) {
-  .colunas-consignados {
-    flex-direction: column;
-    gap: 4px;
-  }
   .form-consignado-linha {
     flex-direction: column;
     align-items: stretch;
@@ -2386,9 +2373,10 @@ body.menu-mobile-aberto {
 
 /* ---- Lista de consignados ---- */
 .lista-consignados {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
 }
 .linha-consignado {
   display: flex;
