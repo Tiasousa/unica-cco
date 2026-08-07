@@ -494,6 +494,20 @@ img { max-width: 100%; display: block; }
   color: #8B8B86;
   font-weight: 500;
 }
+.grid-indicadores-cons {
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.grid-indicadores-cons .card-indicador {
+  padding: 12px 14px;
+}
+.grid-indicadores-cons .card-indicador .topo {
+  margin-bottom: 8px;
+}
+.grid-indicadores-cons .card-indicador .valor {
+  font-size: 19px;
+}
 
 .grid-paineis {
   display: grid;
@@ -2454,4 +2468,109 @@ body.menu-mobile-aberto {
 
 @media (max-width: 480px) {
   .card-frota-foto { aspect-ratio: 16 / 9; }
+}
+
+/* =========================================================
+   VALE (ADIANTAMENTO)
+   ========================================================= */
+.modulo-vale {
+  max-width: 720px;
+}
+.btn-vale-adicionar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--amarelo);
+  color: #16130A;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  border: none;
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: filter var(--transicao);
+  margin-bottom: 18px;
+}
+.btn-vale-adicionar:hover {
+  filter: brightness(1.06);
+}
+.btn-vale-adicionar svg {
+  width: 20px;
+  height: 20px;
+}
+.form-vale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.form-vale .campo {
+  flex: 1;
+  min-width: 150px;
+}
+.campo-botao-vale {
+  flex: 0 0 auto !important;
+  display: flex;
+  gap: 8px;
+}
+.vale-filtro-mes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.vale-filtro-mes span {
+  font-weight: 700;
+  font-size: 14px;
+  min-width: 160px;
+  text-align: center;
+}
+.vale-total-mes {
+  font-size: 13.5px;
+  color: #9A9A97;
+  margin-bottom: 12px;
+}
+.vale-total-mes strong {
+  color: var(--branco);
+  font-size: 15px;
+}
+.tabela-vale {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tabela-vale th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #7A7A75;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--borda-card);
+}
+.tabela-vale td {
+  padding: 10px;
+  border-bottom: 1px solid #222;
+  font-size: 13.5px;
+}
+.lista-vales {
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+@media (max-width: 600px) {
+  .form-vale { flex-direction: column; align-items: stretch; }
+  .campo-botao-vale { flex-direction: row; }
+  .tabela-vale th:nth-child(2),
+  .tabela-vale td:nth-child(2) { display: none; }
 }
