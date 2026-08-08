@@ -18,6 +18,7 @@
     { id: "cpf", label: "CPF" },
     { id: "ctps", label: "Carteira de Trabalho (CTPS)" },
     { id: "contrato", label: "Contrato de Trabalho" },
+    { id: "ficha_registro", label: "Ficha de Registro do Empregado" },
   ];
 
   // Deixa uma margem folgada em relação ao limite real de 1MB do
