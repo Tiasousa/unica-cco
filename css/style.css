@@ -301,6 +301,20 @@ img { max-width: 100%; display: block; }
 }
 .nav-item.ativo svg { opacity: 1; }
 
+.nav-item-vale {
+  color: var(--amarelo);
+}
+.nav-item-vale svg {
+  opacity: 1;
+}
+.nav-item-vale:hover {
+  background: rgba(255,184,0,0.10);
+  color: var(--amarelo);
+}
+.nav-item-vale.ativo {
+  background: linear-gradient(90deg, rgba(255,184,0,0.16), transparent 70%);
+}
+
 .nav-item .seta {
   margin-left: auto;
   width: 13px !important;
