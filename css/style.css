@@ -2281,6 +2281,22 @@ body.menu-mobile-aberto {
   grid-template-columns: repeat(2, 1fr);
   gap: 4px 16px;
 }
+.input-moeda-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.prefixo-moeda {
+  position: absolute;
+  left: 14px;
+  color: #8B8B86;
+  font-size: 14px;
+  pointer-events: none;
+}
+.input-moeda-wrap input {
+  padding-left: 38px !important;
+  width: 100%;
+}
 .form-cadastro-grid .modal-erro,
 .form-cadastro-grid .modal-acoes {
   grid-column: 1 / -1;
