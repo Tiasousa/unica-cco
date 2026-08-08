@@ -350,12 +350,12 @@ async function abrirModalCadastro(chave, id) {
 
   const modalHtml = `
     <div class="modal-overlay" id="modalOverlay">
-      <div class="modal-cadastro">
+      <div class="modal-cadastro ${chave === "cad-funcionarios" ? "modal-largo" : ""}">
         <div class="modal-cabecalho">
           <h3>${dadosExistentes ? "Editar" : "Adicionar"} ${singular}</h3>
           <button type="button" class="btn-fechar-modal" id="btnFecharModal">${iconeX()}</button>
         </div>
-        <form id="formCadastro">
+        <form id="formCadastro" class="${chave === "cad-funcionarios" ? "form-cadastro-grid" : ""}">
           ${config.campos.map(campo => renderCampoForm(campo, dadosExistentes)).join("")}
           <div class="modal-erro" id="modalErro"></div>
           <div class="modal-acoes">
