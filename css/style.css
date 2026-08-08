@@ -2265,16 +2265,40 @@ body.menu-mobile-aberto {
    DOCUMENTOS DO FUNCIONÁRIO
    ========================================================= */
 .modal-documentos {
-  max-width: 560px;
+  max-width: 820px;
+  width: 92vw;
 }
 .modal-consignados {
   max-width: 1180px;
   width: 95vw;
 }
+.modal-largo {
+  max-width: 900px;
+  width: 92vw;
+}
+.form-cadastro-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 16px;
+}
+.form-cadastro-grid .modal-erro,
+.form-cadastro-grid .modal-acoes {
+  grid-column: 1 / -1;
+}
+@media (max-width: 640px) {
+  .form-cadastro-grid {
+    grid-template-columns: 1fr;
+  }
+}
 .lista-docs-unicos {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (max-width: 600px) {
+  .lista-docs-unicos {
+    grid-template-columns: 1fr;
+  }
 }
 .linha-doc-unico {
   display: flex;
