@@ -60,7 +60,7 @@ const CADASTROS_CONFIG = {
       { id: "dataNascimento", label: "Data de nascimento", tipo: "data" },
       { id: "endereco", label: "Endereço", tipo: "texto" },
       { id: "dataAdmissao", label: "Data de admissão", tipo: "data" },
-      { id: "salario", label: "Salário (R$)", tipo: "numero" },
+      { id: "salario", label: "Salário", tipo: "moeda" },
     ],
   },
   "cad-funcoes": {
@@ -114,6 +114,18 @@ function iconeDocumento() {
 }
 function iconeConsignado() {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`;
+}
+
+// Máscara de moeda: digita só números, o campo formata sozinho como
+// 1.234,56 (preenchendo da direita pra esquerda, como caixa eletrônico).
+function mascaraMoedaInput(input) {
+  const digitos = input.value.replace(/\D/g, "");
+  if (!digitos) {
+    input.value = "";
+    return;
+  }
+  const numero = Number(digitos) / 100;
+  input.value = numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Escapa texto antes de colocar em innerHTML, pra evitar que alguém
@@ -187,6 +199,9 @@ function formatarValorCampo(item, campo) {
     const partes = String(valor).split("-");
     if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
     return valor;
+  }
+  if (campo.tipo === "moeda") {
+    return Number(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
   return valor;
 }
@@ -325,6 +340,19 @@ function renderCampoForm(campo, dados) {
         <input type="date" id="campo_${campo.id}" value="${escaparHtml(valorAtual)}" ${campo.obrigatorio ? "required" : ""}>
       </div>`;
   }
+  if (campo.tipo === "moeda") {
+    const formatado = valorAtual
+      ? Number(valorAtual).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : "";
+    return `
+      <div class="campo">
+        <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
+        <div class="input-moeda-wrap">
+          <span class="prefixo-moeda">R$</span>
+          <input type="text" inputmode="numeric" id="campo_${campo.id}" value="${formatado}" placeholder="0,00" oninput="mascaraMoedaInput(this)" ${campo.obrigatorio ? "required" : ""}>
+        </div>
+      </div>`;
+  }
   return `
     <div class="campo">
       <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
@@ -394,6 +422,9 @@ async function salvarCadastro(chave, idExistente) {
     const campoEl = document.getElementById(`campo_${campo.id}`);
     let valor = campoEl.value;
     if (campo.tipo === "numero") valor = valor === "" ? null : Number(valor);
+    if (campo.tipo === "moeda") {
+      valor = valor === "" ? null : Number(valor.replace(/\./g, "").replace(",", "."));
+    }
     if (campo.obrigatorio && !valor) {
       erro.textContent = `Preencha o campo "${campo.label}".`;
       return;
