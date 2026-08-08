@@ -1,578 +1,86 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
-  >
-
-  <title>Central Operacional — Única Construtora</title>
-
-  <link rel="icon" href="assets/icon.png">
-  <link rel="stylesheet" href="css/style.css?v=22">
+<meta charset="UTF-8">
+<meta
+name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+>
+<title>Única Construtora — Centro de Controle Operacional</title>
+<link rel="icon" href="assets/icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="assets/icon.png">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CCO Única">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="css/style.css?v=23">
 </head>
-
 <body>
-
-  <div class="overlay-mobile" id="overlayMobile"></div>
-
-  <div class="app">
-
-    <!-- =====================================================
-         MENU LATERAL
-         ===================================================== -->
-    <aside class="sidebar" id="sidebar">
-
-      <div class="sidebar-topo">
-        <img src="assets/icon.png" alt="Única Construtora">
-
-        <div class="sidebar-marca">
-          <strong>ÚNICA CONSTRUTORA</strong>
-          <span>CENTRO OPERACIONAL</span>
-        </div>
-      </div>
-
-      <nav class="sidebar-nav" id="sidebarNav">
-
-        <!-- =================================================
-             OPERAÇÃO
-             ================================================= -->
-        <div class="grupo-label">Operação</div>
-
-        <!-- Central Operacional -->
-        <div class="nav-grupo">
-          <a class="nav-item ativo" data-pagina="central">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <rect x="3" y="3" width="7" height="9" rx="1.5"/>
-              <rect x="14" y="3" width="7" height="5" rx="1.5"/>
-              <rect x="14" y="12" width="7" height="9" rx="1.5"/>
-              <rect x="3" y="16" width="7" height="5" rx="1.5"/>
-            </svg>
-
-            <span class="texto">Central Operacional</span>
-          </a>
-        </div>
-
-        <!-- Vale -->
-        <div class="nav-grupo">
-          <a class="nav-item" data-pagina="vale">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="9"/>
-              <path d="M12 7v10M9.5 9.5a2.5 2.5 0 0 1 2.5-1h.3a2.2 2.2 0 0 1 0 4.4h-.6a2.2 2.2 0 0 0 0 4.4h.3a2.5 2.5 0 0 0 2.5-1"/>
-            </svg>
-
-            <span class="texto">Vale</span>
-          </a>
-        </div>
-
-        <!-- Obras -->
-        <div class="nav-grupo">
-          <a class="nav-item" data-pagina="obras">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M3 21h18"/>
-              <path d="M5 21V9l7-5 7 5v12"/>
-              <path d="M9 21v-6h6v6"/>
-            </svg>
-
-            <span class="texto">Obras</span>
-          </a>
-        </div>
-
-        <!-- Operação -->
-        <div class="nav-grupo" data-grupo="operacao">
-
-          <a class="nav-item" data-toggle="operacao">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M9 11l3 3L22 4"/>
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-            </svg>
-
-            <span class="texto">Operação</span>
-
-            <svg
-              class="seta"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-
-          </a>
-
-          <div class="nav-submenu">
-
-            <a class="nav-sublink" data-pagina="apontamento">
-              <span class="nav-subicone">●</span>
-              <span>Apontamento Diário</span>
-            </a>
-
-          </div>
-        </div>
-
-        <!-- =================================================
-             FROTA
-             ================================================= -->
-        <div class="nav-grupo" data-grupo="frota">
-
-          <a class="nav-item" data-toggle="frota">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <rect x="1" y="7" width="14" height="10" rx="1.5"/>
-              <path d="M15 10h4l3 3v4h-7z"/>
-              <circle cx="6" cy="19" r="2"/>
-              <circle cx="18" cy="19" r="2"/>
-            </svg>
-
-            <span class="texto">Frota</span>
-
-            <span
-              class="nav-alerta nav-alerta-principal"
-              id="alertaFrota"
-              hidden
-            >
-              0
-            </span>
-
-            <svg
-              class="seta"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-
-          </a>
-
-          <div class="nav-submenu">
-
-            <a class="nav-sublink" data-pagina="frota-visao-geral">
-              <span class="nav-subicone">▦</span>
-              <span>Visão Geral</span>
-            </a>
-
-            <a class="nav-sublink" data-pagina="maquinas">
-              <span class="nav-subicone">●</span>
-              <span>Máquinas</span>
-
-              <span
-                class="nav-contador"
-                id="contadorMaquinas"
-                hidden
-              >
-                0
-              </span>
-            </a>
-
-            <a class="nav-sublink" data-pagina="caminhoes">
-              <span class="nav-subicone">●</span>
-              <span>Caminhões</span>
-
-              <span
-                class="nav-contador"
-                id="contadorCaminhoes"
-                hidden
-              >
-                0
-              </span>
-            </a>
-
-            <a class="nav-sublink" data-pagina="abastecimentos">
-              <span class="nav-subicone">●</span>
-              <span>Abastecimentos</span>
-            </a>
-
-            <a class="nav-sublink" data-pagina="manutencoes">
-              <span class="nav-subicone">●</span>
-              <span>Manutenções</span>
-
-              <span
-                class="nav-alerta"
-                id="alertaManutencoes"
-                hidden
-              >
-                0
-              </span>
-            </a>
-
-            <a class="nav-sublink" data-pagina="checklists">
-              <span class="nav-subicone">●</span>
-              <span>Checklists</span>
-
-              <span
-                class="nav-alerta"
-                id="alertaChecklists"
-                hidden
-              >
-                0
-              </span>
-            </a>
-
-            <a class="nav-sublink" data-pagina="documentos-frota">
-              <span class="nav-subicone">●</span>
-              <span>Documentos</span>
-
-              <span
-                class="nav-alerta"
-                id="alertaDocumentosFrota"
-                hidden
-              >
-                0
-              </span>
-            </a>
-
-          </div>
-        </div>
-
-        <!-- =================================================
-             GESTÃO
-             ================================================= -->
-        <div class="grupo-label">Gestão</div>
-
-        <!-- Materiais -->
-        <div class="nav-grupo">
-          <a class="nav-item" data-pagina="materiais">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-              <path d="M3.27 6.96L12 12.01l8.73-5.05"/>
-              <path d="M12 22.08V12"/>
-            </svg>
-
-            <span class="texto">Materiais</span>
-          </a>
-        </div>
-
-        <!-- Relatórios -->
-        <div class="nav-grupo">
-          <a class="nav-item" data-pagina="relatorios">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M18 20V10"/>
-              <path d="M12 20V4"/>
-              <path d="M6 20v-6"/>
-            </svg>
-
-            <span class="texto">Relatórios</span>
-          </a>
-        </div>
-
-        <!-- Cadastros -->
-        <div class="nav-grupo" data-grupo="cadastros">
-
-          <a class="nav-item" data-toggle="cadastros">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
-              <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/>
-              <path d="M9 13h6"/>
-              <path d="M9 17h6"/>
-            </svg>
-
-            <span class="texto">Cadastros</span>
-
-            <svg
-              class="seta"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-
-          </a>
-
-          <div class="nav-submenu">
-
-            <a class="nav-sublink" data-pagina="cad-servicos">
-              Serviços
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-tipos-equip">
-              Tipos de equipamento
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-materiais">
-              Materiais
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-combustiveis">
-              Combustíveis
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-unidades">
-              Unidades de medida
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-funcionarios">
-              Funcionários
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-funcoes">
-              Funções
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-pecas">
-              Peças
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-fornecedores">
-              Fornecedores
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-tipos-manutencao">
-              Tipos de manutenção
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-placas">
-              Placas
-            </a>
-
-            <a class="nav-sublink" data-pagina="cad-motivos">
-              Motivos de paralisação
-            </a>
-
-          </div>
-        </div>
-
-        <!-- =================================================
-             SISTEMA
-             ================================================= -->
-        <div class="grupo-label">Sistema</div>
-
-        <!-- Configurações -->
-        <div class="nav-grupo">
-          <a class="nav-item" data-pagina="configuracoes">
-
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-
-            <span class="texto">Configurações</span>
-          </a>
-        </div>
-
-      </nav>
-
-      <!-- ===================================================
-           USUÁRIO
-           =================================================== -->
-      <div class="sidebar-rodape">
-
-        <div class="avatar" id="avatarIniciais">
-          --
-        </div>
-
-        <div class="usuario-info">
-          <strong id="usuarioNome">—</strong>
-          <span id="usuarioCargo">—</span>
-        </div>
-
-      </div>
-
-    </aside>
-
-    <!-- Botão de recolher menu -->
-    <button
-      class="btn-recolher"
-      id="btnRecolher"
-      title="Recolher menu"
-      type="button"
-    >
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#ccc"
-        stroke-width="2.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <path d="M15 18l-6-6 6-6"/>
-      </svg>
-    </button>
-
-    <!-- =====================================================
-         CONTEÚDO PRINCIPAL
-         ===================================================== -->
-    <div class="conteudo">
-
-      <div class="topbar">
-
-        <div class="topbar-esquerda">
-
-          <button
-            class="btn-menu-mobile"
-            id="btnMenuMobile"
-            type="button"
-            aria-label="Abrir menu"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            >
-              <path d="M3 12h18M3 6h18M3 18h18"/>
-            </svg>
-          </button>
-
-          <div class="topbar-titulo-wrap">
-            <h1 id="tituloPagina">Central Operacional</h1>
-
-            <span
-              class="topbar-subtitulo"
-              id="subtituloPagina"
-            ></span>
-          </div>
-
-        </div>
-
-        <div class="topbar-acoes">
-
-          <button
-            class="btn-notificacoes"
-            id="btnNotificacoes"
-            type="button"
-            title="Alertas"
-            aria-label="Abrir alertas"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-            </svg>
-
-            <span
-              class="notificacoes-contador"
-              id="contadorNotificacoes"
-              hidden
-            >
-              0
-            </span>
-          </button>
-
-          <span class="data-hoje" id="dataHoje"></span>
-
-          <button
-            class="btn-entrar btn-sair"
-            type="button"
-            onclick="sair()"
-          >
-            Sair
-          </button>
-
-        </div>
-      </div>
-
-      <main class="pagina" id="areaPagina">
-        <div class="em-construcao">
-          <p>Carregando...</p>
-        </div>
-      </main>
-
-    </div>
-
-  </div>
-
-  <!-- =======================================================
-       SCRIPTS
-       A ordem é importante:
-       cadastros.js precisa carregar antes de frota.js
-       ======================================================= -->
-
-  <script src="js/central.js?v=15"></script>
-  <script src="js/vale.js?v=2"></script>
-  <script src="js/cadastros.js?v=17"></script>
-  <script src="js/funcionarios-documentos.js?v=1"></script>
-  <script src="js/funcionarios-consignados.js?v=3"></script>
-  <script src="js/obras.js?v=15"></script>
-  <script src="js/frota.js?v=17"></script>
-  <script src="js/manutencoes.js?v=15"></script>
-  <script src="js/apontamento.js?v=15"></script>
-  <script src="js/abastecimentos.js?v=2"></script>
-  <script src="js/nav.js?v=15"></script>
-  <script type="module" src="js/auth.js?v=16"></script>
-
+<div class="login-tela">
+<form
+class="login-card"
+id="formLogin"
+autocomplete="off"
+>
+<img
+src="assets/icon.png"
+alt="Única Construtora"
+class="login-logo"
+>
+<div class="login-titulo">
+ÚNICA CONSTRUTORA
+</div>
+<div class="login-subtitulo">
+Centro de Controle Operacional
+</div>
+<div class="login-form">
+<div
+class="login-erro"
+id="loginErro"
+>
+E-mail ou senha incorretos.
+</div>
+<div class="campo">
+<label for="email">
+E-mail
+</label>
+<input
+type="email"
+id="email"
+required
+autocomplete="email"
+placeholder="seuemail@unicaconstrutora.com"
+>
+</div>
+<div class="campo">
+<label for="senha">
+Senha
+</label>
+<input
+type="password"
+id="senha"
+required
+autocomplete="current-password"
+placeholder="••••••••"
+>
+</div>
+<button
+type="submit"
+class="btn-entrar"
+>
+Entrar
+</button>
+</div>
+<div class="login-rodape">
+Acesso restrito · Uso interno
+</div>
+</form>
+</div>
+<script
+type="module"
+src="js/auth.js?v=16"
+></script>
 </body>
 </html>
