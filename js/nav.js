@@ -475,9 +475,13 @@ async function renderizarPagina(pagina) {
       return executarModulo("renderCadastro", [pagina]);
 
 
+    /* Documentos da Frota */
+    case "documentos-frota":
+      return executarModulo("renderDocumentosFrota");
+
+
     /* Módulos preparados para desenvolvimento */
     case "checklists":
-    case "documentos-frota":
     case "materiais":
     case "relatorios":
     case "configuracoes":
