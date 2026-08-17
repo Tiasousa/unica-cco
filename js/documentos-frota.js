@@ -19,8 +19,10 @@ const DOCFROTA_LIMITE_BYTES = 850 * 1024;
 const DOCFROTA_DIAS_ALERTA = 30;
 
 const DOCFROTA_TIPOS = [
-  { id: "licenciamento", label: "Licenciamento (CRLV)" },
-  { id: "seguro", label: "Seguro" },
+  { id: "licenciamento", label: "Licenciamento (CRLV)", temVencimento: true },
+  { id: "seguro", label: "Seguro", temVencimento: true },
+  { id: "nota_fiscal", label: "Nota Fiscal", temVencimento: false },
+  { id: "manual", label: "Manual", temVencimento: false },
 ];
 
 let docFrotaEquipamentos = [];
@@ -58,6 +60,14 @@ function statusDocFrota(dataIso) {
   if (diasRestantes < 0) return { chave: "vencido", rotulo: "Vencido", badge: "parada", diasRestantes };
   if (diasRestantes <= DOCFROTA_DIAS_ALERTA) return { chave: "vence_em_breve", rotulo: `Vence em ${diasRestantes} dia${diasRestantes === 1 ? "" : "s"}`, badge: "atencao", diasRestantes };
   return { chave: "valido", rotulo: "Em dia", badge: "ativa", diasRestantes };
+}
+
+// Pra Nota Fiscal, Manual etc — documentos que não vencem, só importa
+// se tem o anexo ou não.
+function statusAnexoSimples(temArquivo) {
+  return temArquivo
+    ? { chave: "anexado", rotulo: "Anexado", badge: "ativa" }
+    : { chave: "sem_anexo", rotulo: "Sem anexo", badge: "" };
 }
 
 function verificarFirebaseDocFrota() {
@@ -114,7 +124,7 @@ async function carregarDocumentosFrota() {
 function atualizarAlertaDocumentosFrota() {
   let contagem = 0;
   docFrotaEquipamentos.forEach((equip) => {
-    DOCFROTA_TIPOS.forEach((tipo) => {
+    DOCFROTA_TIPOS.filter((t) => t.temVencimento).forEach((tipo) => {
       const doc = equip.documentos[tipo.id];
       const status = statusDocFrota(doc?.dataVencimento);
       if (status.chave === "vencido" || status.chave === "vence_em_breve") contagem++;
@@ -212,14 +222,18 @@ function renderizarListaDocFrota() {
           <div class="linhas-doc-frota">
             ${DOCFROTA_TIPOS.map((tipo) => {
               const doc = equip.documentos[tipo.id];
-              const status = statusDocFrota(doc?.dataVencimento);
+              const status = tipo.temVencimento
+                ? statusDocFrota(doc?.dataVencimento)
+                : statusAnexoSimples(!!doc?.dados);
               return `
                 <button type="button" class="linha-doc-frota" data-abrir-doc-frota="${escDocFrota(equip.colecao)}:${escDocFrota(equip.id)}:${tipo.id}">
                   <div class="linha-doc-frota-info">
                     <strong>${tipo.label}</strong>
-                    <span class="doc-data">${doc?.dataVencimento ? "Vence em " + fmtDataDocFrota(doc.dataVencimento) : "Sem data cadastrada"}</span>
+                    <span class="doc-data">${tipo.temVencimento
+                      ? (doc?.dataVencimento ? "Vence em " + fmtDataDocFrota(doc.dataVencimento) : "Sem data cadastrada")
+                      : (doc?.dados ? "Arquivo anexado" : "Nenhum arquivo ainda")}</span>
                   </div>
-                  ${status.badge ? `<span class="badge ${status.badge}">${escDocFrota(status.rotulo)}</span>` : `<span class="badge-vazio">Cadastrar</span>`}
+                  ${status.badge ? `<span class="badge ${status.badge}">${escDocFrota(status.rotulo)}</span>` : `<span class="badge-vazio">${tipo.temVencimento ? "Cadastrar" : "Anexar"}</span>`}
                 </button>
               `;
             }).join("")}
@@ -259,10 +273,11 @@ function abrirModalDocFrota(colecao, id, tipoId) {
           <button type="button" class="btn-fechar-modal" id="btnFecharModalDocFrota">${window.iconeX ? window.iconeX() : "×"}</button>
         </div>
         <form id="formDocFrota">
+          ${tipo.temVencimento ? `
           <div class="campo">
             <label>Data de vencimento</label>
             <input type="date" id="docFrotaVencimento" value="${doc?.dataVencimento || ""}">
-          </div>
+          </div>` : ""}
           <div class="campo">
             <label>Anexo (foto ou PDF)</label>
             ${doc?.dados
@@ -334,7 +349,7 @@ async function salvarDocFrota(colecao, id, tipoId, docExistente) {
   const erroEl = document.getElementById("docFrotaErro");
   erroEl.textContent = "";
 
-  const dataVencimento = document.getElementById("docFrotaVencimento").value || null;
+  const dataVencimento = document.getElementById("docFrotaVencimento")?.value || null;
   const arquivo = document.getElementById("docFrotaArquivo").files[0];
 
   const botao = document.getElementById("btnSalvarDocFrota");
