@@ -124,12 +124,6 @@ const PAGINAS_CONFIG = {
     grupo: "cadastros",
   },
 
-  "cad-materiais": {
-    titulo: "Cadastros · Materiais",
-    subtitulo: "Materiais utilizados nas obras",
-    grupo: "cadastros",
-  },
-
   "cad-combustiveis": {
     titulo: "Cadastros · Combustíveis",
     subtitulo: "Tipos de combustíveis utilizados",
@@ -462,7 +456,6 @@ async function renderizarPagina(pagina) {
     /* Cadastros gerais */
     case "cad-servicos":
     case "cad-tipos-equip":
-    case "cad-materiais":
     case "cad-combustiveis":
     case "cad-unidades":
     case "cad-funcionarios":
