@@ -1479,7 +1479,7 @@ async function abrirModalFrota(
 
             <div class="campo">
               <label for="frotaFotoArquivo">Foto (opcional)</label>
-              <input type="file" id="frotaFotoArquivo" accept="image/*" capture="environment">
+              <input type="file" id="frotaFotoArquivo" accept="image/*">
               <input type="hidden" id="frotaFotoUrl" value="${escaparHtmlFrota(dados?.fotoUrl || "")}">
               <div class="preview-foto-frota" id="previewFotoFrota">
                 ${dados?.fotoUrl
