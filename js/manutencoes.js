@@ -87,6 +87,7 @@ async function carregarBaseManutencoes() {
         categoriaRotulo,
         nome: dados.nome || "Sem nome",
         identificacao: dados[campoIdent] || "—",
+        fotoUrl: dados.fotoUrl || null,
       });
     });
   };
@@ -270,6 +271,9 @@ function fecharModalManutencao() {
 function abrirModalManutencao(id) {
   const dados = id ? manutEstado.itens.find((m) => m.id === id) : null;
   const chaveEquipAtual = dados ? `${dados.colecaoEquipamento}:${dados.equipamentoId}` : "";
+  const equipAtual = dados
+    ? manutEstado.equipamentos.find((e) => e.colecao === dados.colecaoEquipamento && e.id === dados.equipamentoId)
+    : null;
 
   const modalHtml = `
     <div class="modal-overlay" id="modalOverlay">
@@ -281,15 +285,15 @@ function abrirModalManutencao(id) {
         <form id="formManutencao">
           <div class="campo">
             <label>Equipamento *</label>
-            <select id="manutEquipamento" required>
-              <option value="">Selecione</option>
-              <optgroup label="Máquinas">
-                ${manutEstado.equipamentos.filter((e) => e.colecao === "maquinas").map((e) => `<option value="maquinas:${escManut(e.id)}" ${chaveEquipAtual === `maquinas:${e.id}` ? "selected" : ""}>${escManut(e.nome)} · ${escManut(e.identificacao)}</option>`).join("")}
-              </optgroup>
-              <optgroup label="Caminhões">
-                ${manutEstado.equipamentos.filter((e) => e.colecao === "caminhoes").map((e) => `<option value="caminhoes:${escManut(e.id)}" ${chaveEquipAtual === `caminhoes:${e.id}` ? "selected" : ""}>${escManut(e.nome)} · ${escManut(e.identificacao)}</option>`).join("")}
-              </optgroup>
-            </select>
+            <input type="hidden" id="manutEquipamento" value="${chaveEquipAtual}" required>
+            <button type="button" class="seletor-equip-botao" id="btnAbrirSeletorEquipManut">
+              ${equipAtual ? `
+                ${equipAtual.fotoUrl
+                  ? `<span class="seletor-equip-botao-foto"><img src="${escManut(equipAtual.fotoUrl)}" alt=""></span>`
+                  : `<span class="seletor-equip-botao-foto seletor-equip-botao-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/></svg></span>`}
+                <span class="seletor-equip-botao-texto"><strong>${escManut(equipAtual.nome)}</strong><small>${escManut(equipAtual.identificacao)}</small></span>
+              ` : `<span class="seletor-equip-botao-texto seletor-equip-botao-vazio">Toque para escolher o equipamento</span>`}
+            </button>
           </div>
           <div class="campo">
             <label>Tipo de manutenção</label>
@@ -337,6 +341,18 @@ function abrirModalManutencao(id) {
   document.body.insertAdjacentHTML("beforeend", modalHtml);
   document.getElementById("btnFecharModalManut")?.addEventListener("click", fecharModalManutencao);
   document.getElementById("btnCancelarModalManut")?.addEventListener("click", fecharModalManutencao);
+  document.getElementById("btnAbrirSeletorEquipManut")?.addEventListener("click", () => {
+    window.abrirSeletorEquipamentoVisual(manutEstado.equipamentos, (equip) => {
+      document.getElementById("manutEquipamento").value = `${equip.colecao}:${equip.id}`;
+      const botao = document.getElementById("btnAbrirSeletorEquipManut");
+      botao.innerHTML = `
+        ${equip.fotoUrl
+          ? `<span class="seletor-equip-botao-foto"><img src="${escManut(equip.fotoUrl)}" alt=""></span>`
+          : `<span class="seletor-equip-botao-foto seletor-equip-botao-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/></svg></span>`}
+        <span class="seletor-equip-botao-texto"><strong>${escManut(equip.nome)}</strong><small>${escManut(equip.identificacao)}</small></span>
+      `;
+    });
+  });
   document.getElementById("modalOverlay")?.addEventListener("click", (e) => {
     if (e.target.id === "modalOverlay") fecharModalManutencao();
   });
