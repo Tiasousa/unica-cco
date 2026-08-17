@@ -848,8 +848,8 @@ img { max-width: 100%; display: block; }
   background: var(--preto-card);
   border: 1px solid var(--borda-card);
   border-radius: 14px;
-  width: 100%;
-  max-width: 440px;
+  width: 92vw;
+  max-width: 880px;
   padding: 24px;
   max-height: 90vh;
   overflow-y: auto;
@@ -2411,33 +2411,32 @@ body.menu-mobile-aberto {
 }
 
 /* ---- Formulário de novo/edição de consignado ---- */
-.form-consignado {
+.form-consignado,
+.form-compra {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 4px;
 }
-.form-consignado {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-.form-consignado-linha {
+.form-consignado-linha,
+.form-compra-linha {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 12px;
 }
-.form-consignado-linha .campo {
+.form-consignado-linha .campo,
+.form-compra-linha .campo {
   flex: 1;
   min-width: 110px;
 }
-.campo-descricao-cons {
+.campo-descricao-cons,
+.campo-descricao-comp {
   flex: 2 !important;
   min-width: 220px !important;
 }
-.campo-botao-cons {
+.campo-botao-cons,
+.campo-botao-comp {
   flex: 0 0 auto !important;
   flex-direction: row;
   display: flex;
@@ -2461,7 +2460,14 @@ body.menu-mobile-aberto {
   gap: 10px;
   margin-top: 8px;
 }
-.linha-consignado {
+.lista-compras {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+.linha-consignado,
+.linha-compra {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2471,37 +2477,44 @@ body.menu-mobile-aberto {
   border-radius: var(--radius-sm);
   padding: 12px 14px;
 }
-.linha-consignado.consignado-quitado {
+.linha-consignado.consignado-quitado,
+.linha-compra.compra-quitada {
   opacity: 0.55;
 }
-.cons-valor {
+.cons-valor,
+.comp-valor {
   color: #9A9A97;
   font-size: 12px;
 }
-.cons-progresso {
+.cons-progresso,
+.comp-progresso {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-top: 2px;
 }
-.cons-progresso-barra {
+.cons-progresso-barra,
+.comp-progresso-barra {
   width: 90px;
   height: 6px;
   background: #262626;
   border-radius: 999px;
   overflow: hidden;
 }
-.cons-progresso-barra div {
+.cons-progresso-barra div,
+.comp-progresso-barra div {
   height: 100%;
   background: var(--amarelo);
   border-radius: 999px;
 }
-.cons-progresso span {
+.cons-progresso span,
+.comp-progresso span {
   font-size: 11.5px;
   color: #9A9A97;
   white-space: nowrap;
 }
-.cons-acoes {
+.cons-acoes,
+.comp-acoes {
   display: flex;
   gap: 4px;
   flex-shrink: 0;
