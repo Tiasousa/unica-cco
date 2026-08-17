@@ -31,6 +31,14 @@ const CADASTROS_CONFIG = {
       ]},
     ],
   },
+  "cad-checklist-itens": {
+    colecao: "cadastros_checklist_itens", titulo: "Itens de Checklist", campoPrincipal: "nome",
+    campos: [
+      { id: "nome", label: "Item", tipo: "texto", obrigatorio: true },
+      { id: "tipoEquipamentoId", label: "Tipo de equipamento", tipo: "referencia", colecaoRef: "cadastros_tipos_equipamento" },
+      { id: "ordem", label: "Ordem de exibição", tipo: "numero" },
+    ],
+  },
   "cad-combustiveis": {
     colecao: "cadastros_combustiveis", titulo: "Combustíveis", campoPrincipal: "nome",
     campos: [ { id: "nome", label: "Nome", tipo: "texto", obrigatorio: true } ],
