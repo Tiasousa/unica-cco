@@ -213,6 +213,7 @@ function adicionarSnapshotEquipApont(snapshot, chaveConfig) {
       campoMedidor: config.campoMedidor,
       medidorRotulo: config.medidorRotulo,
       unidade: config.unidade,
+      fotoUrl: dados.fotoUrl || null,
     });
   });
 }
@@ -532,6 +533,9 @@ function renderCardsEquipApont() {
         return `
           <button type="button" class="abast-card-equipamento${selecionado ? " selecionado" : ""}" data-chave-equip="${escApont(chave)}">
             <span class="abast-card-check">✓</span>
+            ${eq.fotoUrl
+              ? `<div class="apont-card-foto"><img src="${escApont(eq.fotoUrl)}" alt="" loading="lazy"></div>`
+              : `<div class="apont-card-foto apont-card-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg></div>`}
             <span class="abast-card-tipo">${escApont(eq.tipoRotulo)}</span>
             <strong>${escApont(eq.nome)}</strong>
             <span class="abast-card-identificacao">${escApont(eq.identificacao)}</span>
