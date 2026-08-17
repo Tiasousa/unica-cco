@@ -730,7 +730,7 @@ function renderItemLancamentoApont(eq, indice) {
 
       <div class="campo" style="margin-top:12px;">
         <label>Foto (opcional)</label>
-        <input type="file" accept="image/*" capture="environment" data-campo-foto="arquivo">
+        <input type="file" accept="image/*" data-campo-foto="arquivo">
         <div class="preview-foto-frota" data-campo-foto="preview">
           <span class="preview-foto-vazio">${obterIconePlaceholderFrota ? obterIconePlaceholderFrota(eq.tipo) : ""}</span>
         </div>
