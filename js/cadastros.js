@@ -73,7 +73,7 @@ const CADASTROS_CONFIG = {
     campos: [
       { id: "nome", label: "Nome", tipo: "texto", obrigatorio: true },
       { id: "telefone", label: "Telefone", tipo: "texto" },
-      { id: "cidade", label: "Cidade", tipo: "texto" },
+      { id: "cidade", label: "Cidade", tipo: "cidade" },
     ],
   },
   "cad-tipos-manutencao": {
@@ -250,6 +250,9 @@ async function carregarTabelaCadastro(chave) {
                   ? `<button class="btn-icone" title="Documentos" data-documentos="${item.id}" data-nome-func="${escaparHtml(item.nome || "")}">${iconeDocumento()}</button>
                      <button class="btn-icone" title="Consignados" data-consignados="${item.id}" data-nome-func2="${escaparHtml(item.nome || "")}">${iconeConsignado()}</button>`
                   : ""}
+                ${chave === "cad-fornecedores"
+                  ? `<button class="btn-icone" title="Compras" data-compras="${item.id}" data-nome-forn="${escaparHtml(item.nome || "")}">${iconeConsignado()}</button>`
+                  : ""}
                 <button class="btn-icone" title="Editar" data-editar="${item.id}">${iconeLapis()}</button>
                 ${item.ativo === false
                   ? `<button class="btn-icone" title="Reativar" data-reativar="${item.id}">${iconeCheck()}</button>`
@@ -281,6 +284,13 @@ async function carregarTabelaCadastro(chave) {
       btn.addEventListener("click", () => {
         if (typeof window.abrirConsignadosFuncionario === "function") {
           window.abrirConsignadosFuncionario(btn.dataset.consignados, btn.dataset.nomeFunc2);
+        }
+      });
+    });
+    wrap.querySelectorAll("[data-compras]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (typeof window.abrirComprasFornecedor === "function") {
+          window.abrirComprasFornecedor(btn.dataset.compras, btn.dataset.nomeForn);
         }
       });
     });
@@ -346,6 +356,16 @@ function renderCampoForm(campo, dados) {
         </div>
       </div>`;
   }
+  if (campo.tipo === "cidade") {
+    return `
+      <div class="campo">
+        <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
+        <input type="text" id="campo_${campo.id}" list="listaCidadesCadastro" value="${escaparHtml(valorAtual)}" placeholder="Digite ou escolha..." ${campo.obrigatorio ? "required" : ""}>
+        <datalist id="listaCidadesCadastro">
+          ${(window.CIDADES_GOIAS || []).map((c) => `<option value="${escaparHtml(c)}"></option>`).join("")}
+        </datalist>
+      </div>`;
+  }
   return `
     <div class="campo">
       <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
@@ -371,12 +391,12 @@ async function abrirModalCadastro(chave, id) {
 
   const modalHtml = `
     <div class="modal-overlay" id="modalOverlay">
-      <div class="modal-cadastro ${chave === "cad-funcionarios" ? "modal-largo" : ""}">
+      <div class="modal-cadastro">
         <div class="modal-cabecalho">
           <h3>${dadosExistentes ? "Editar" : "Adicionar"} ${singular}</h3>
           <button type="button" class="btn-fechar-modal" id="btnFecharModal">${iconeX()}</button>
         </div>
-        <form id="formCadastro" class="${chave === "cad-funcionarios" ? "form-cadastro-grid" : ""}">
+        <form id="formCadastro" class="form-cadastro-grid">
           ${config.campos.map(campo => renderCampoForm(campo, dadosExistentes)).join("")}
           <div class="modal-erro" id="modalErro"></div>
           <div class="modal-acoes">
