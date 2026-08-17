@@ -479,10 +479,13 @@ async function renderizarPagina(pagina) {
     case "documentos-frota":
       return executarModulo("renderDocumentosFrota");
 
+    /* Materiais */
+    case "materiais":
+      return executarModulo("renderMateriais");
+
 
     /* Módulos preparados para desenvolvimento */
     case "checklists":
-    case "materiais":
     case "relatorios":
     case "configuracoes":
       return renderPlaceholder(pagina);
@@ -919,6 +922,10 @@ function mostrarPainelNotificacoes() {
     "alertaDocumentosFrota"
   );
 
+  const materiais = obterNumeroContador(
+    "alertaMateriais"
+  );
+
   if (manutencoes > 0) {
     alertas.push({
       pagina: "manutencoes",
@@ -940,6 +947,14 @@ function mostrarPainelNotificacoes() {
       pagina: "documentos-frota",
       titulo: "Documentos próximos do vencimento",
       quantidade: documentos,
+    });
+  }
+
+  if (materiais > 0) {
+    alertas.push({
+      pagina: "materiais",
+      titulo: "Materiais com estoque baixo",
+      quantidade: materiais,
     });
   }
 
