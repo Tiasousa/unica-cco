@@ -254,6 +254,7 @@ const CIDADES_GOIAS = [
   "Vila Boa",
   "Vila Propício"
 ];
+window.CIDADES_GOIAS = CIDADES_GOIAS;
 
 const ESTADOS_BR = [
   { sigla: "AC", nome: "Acre" },
