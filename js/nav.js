@@ -124,6 +124,12 @@ const PAGINAS_CONFIG = {
     grupo: "cadastros",
   },
 
+  "cad-checklist-itens": {
+    titulo: "Cadastros · Itens de Checklist",
+    subtitulo: "Itens de verificação por tipo de equipamento",
+    grupo: "cadastros",
+  },
+
   "cad-combustiveis": {
     titulo: "Cadastros · Combustíveis",
     subtitulo: "Tipos de combustíveis utilizados",
@@ -456,6 +462,7 @@ async function renderizarPagina(pagina) {
     /* Cadastros gerais */
     case "cad-servicos":
     case "cad-tipos-equip":
+    case "cad-checklist-itens":
     case "cad-combustiveis":
     case "cad-unidades":
     case "cad-funcionarios":
@@ -476,9 +483,12 @@ async function renderizarPagina(pagina) {
     case "materiais":
       return executarModulo("renderMateriais");
 
+    /* Checklists */
+    case "checklists":
+      return executarModulo("renderChecklists");
+
 
     /* Módulos preparados para desenvolvimento */
-    case "checklists":
     case "relatorios":
     case "configuracoes":
       return renderPlaceholder(pagina);
