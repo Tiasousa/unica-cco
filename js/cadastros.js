@@ -31,13 +31,6 @@ const CADASTROS_CONFIG = {
       ]},
     ],
   },
-  "cad-materiais": {
-    colecao: "cadastros_materiais", titulo: "Materiais", campoPrincipal: "nome",
-    campos: [
-      { id: "nome", label: "Nome", tipo: "texto", obrigatorio: true },
-      { id: "unidadePadraoId", label: "Unidade padrão", tipo: "referencia", colecaoRef: "cadastros_unidades" },
-    ],
-  },
   "cad-combustiveis": {
     colecao: "cadastros_combustiveis", titulo: "Combustíveis", campoPrincipal: "nome",
     campos: [ { id: "nome", label: "Nome", tipo: "texto", obrigatorio: true } ],
