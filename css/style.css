@@ -2623,3 +2623,138 @@ body.menu-mobile-aberto {
   .tabela-vale th:nth-child(2),
   .tabela-vale td:nth-child(2) { display: none; }
 }
+
+/* =========================================================
+   SELETOR VISUAL DE EQUIPAMENTO (foto + nome)
+   ========================================================= */
+
+/* Miniatura de foto dentro do card de seleção (usado tanto no
+   Apontamento quanto no seletor de Manutenções) */
+.apont-card-foto {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--borda-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+.apont-card-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.apont-card-foto-vazia svg {
+  width: 26px;
+  height: 26px;
+  color: #4A4A44;
+}
+
+/* Botão que abre o seletor (substitui o <select> no formulário) */
+.seletor-equip-botao {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--branco);
+  transition: border-color var(--transicao);
+}
+.seletor-equip-botao:hover {
+  border-color: var(--amarelo);
+}
+.seletor-equip-botao-foto {
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--borda-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.seletor-equip-botao-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.seletor-equip-botao-foto-vazia svg {
+  width: 20px;
+  height: 20px;
+  color: #4A4A44;
+}
+.seletor-equip-botao-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.seletor-equip-botao-texto strong {
+  font-size: 14px;
+}
+.seletor-equip-botao-texto small {
+  color: #9A9A97;
+  font-size: 12px;
+}
+.seletor-equip-botao-vazio {
+  color: #7A7A75;
+  font-size: 13.5px;
+}
+
+/* O overlay que abre com os cards, agrupado Máquinas/Caminhões */
+.busca-seletor-equip {
+  width: 100%;
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius-sm);
+  color: var(--branco);
+  padding: 10px 14px;
+  font-size: 13.5px;
+  margin-bottom: 16px;
+}
+.grid-seletor-equip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.card-seletor-equip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-radius: var(--radius);
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transicao), transform var(--transicao);
+}
+.card-seletor-equip:hover {
+  border-color: var(--amarelo);
+  transform: translateY(-1px);
+}
+.card-seletor-equip strong {
+  font-size: 13.5px;
+  color: var(--branco);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-seletor-equip-ident {
+  color: #9A9A97;
+  font-size: 11.5px;
+}
+@media (max-width: 480px) {
+  .grid-seletor-equip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
