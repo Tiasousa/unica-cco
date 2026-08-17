@@ -9,8 +9,8 @@
 // sininho, mesmo padrão de Manutenções/Checklists/Documentos.
 //
 // Guardado em:
-//   cadastros_materiais/{id}                        — catálogo
-//   cadastros_materiais/{id}/movimentacoes/{autoId}  — histórico
+//   materiais_estoque/{id}                        — catálogo
+//   materiais_estoque/{id}/movimentacoes/{autoId}  — histórico
 // =========================================================
 
 const UNIDADES_MATERIAL = ["m³", "ton", "kg", "saco", "m²", "m", "un", "L"];
@@ -60,7 +60,7 @@ async function carregarMateriais() {
   const { collection, getDocs } = window.fs;
 
   const [snapMat, snapObras] = await Promise.all([
-    getDocs(collection(window.firebaseDb, "cadastros_materiais")),
+    getDocs(collection(window.firebaseDb, "materiais_estoque")),
     getDocs(collection(window.firebaseDb, "obras")),
   ]);
 
@@ -240,7 +240,7 @@ async function alternarAtivoMaterial(id, novoValor) {
   try {
     verificarFirebaseMat();
     const { doc, updateDoc, serverTimestamp } = window.fs;
-    await updateDoc(doc(window.firebaseDb, "cadastros_materiais", id), { ativo: novoValor, atualizadoEm: serverTimestamp() });
+    await updateDoc(doc(window.firebaseDb, "materiais_estoque", id), { ativo: novoValor, atualizadoEm: serverTimestamp() });
     await carregarMateriais();
     renderizarListaMateriais();
   } catch (erro) {
@@ -332,12 +332,12 @@ async function salvarMaterial(idExistente) {
     const { collection, addDoc, doc, updateDoc, serverTimestamp } = window.fs;
 
     if (idExistente) {
-      await updateDoc(doc(window.firebaseDb, "cadastros_materiais", idExistente), {
+      await updateDoc(doc(window.firebaseDb, "materiais_estoque", idExistente), {
         nome, unidadeMedida, estoqueMinimo, atualizadoEm: serverTimestamp(),
       });
     } else {
       const estoqueInicial = Number(document.getElementById("matEstoqueInicial").value) || 0;
-      await addDoc(collection(window.firebaseDb, "cadastros_materiais"), {
+      await addDoc(collection(window.firebaseDb, "materiais_estoque"), {
         nome, unidadeMedida, estoqueMinimo,
         estoqueAtual: estoqueInicial,
         ativo: true,
@@ -451,13 +451,13 @@ async function salvarMovimentacao(tipo, materialId) {
     verificarFirebaseMat();
     const { collection, addDoc, doc, updateDoc, serverTimestamp } = window.fs;
 
-    await addDoc(collection(window.firebaseDb, "cadastros_materiais", materialId, "movimentacoes"), {
+    await addDoc(collection(window.firebaseDb, "materiais_estoque", materialId, "movimentacoes"), {
       tipo, quantidade, data, obraId, obraNome: obra?.nome || null, observacao,
       criadoEm: serverTimestamp(),
     });
 
     const novoSaldo = tipo === "entrada" ? saldoAtual + quantidade : saldoAtual - quantidade;
-    await updateDoc(doc(window.firebaseDb, "cadastros_materiais", materialId), {
+    await updateDoc(doc(window.firebaseDb, "materiais_estoque", materialId), {
       estoqueAtual: novoSaldo,
       atualizadoEm: serverTimestamp(),
     });
@@ -501,7 +501,7 @@ async function abrirHistoricoMaterial(materialId) {
   try {
     verificarFirebaseMat();
     const { collection, getDocs } = window.fs;
-    const snap = await getDocs(collection(window.firebaseDb, "cadastros_materiais", materialId, "movimentacoes"));
+    const snap = await getDocs(collection(window.firebaseDb, "materiais_estoque", materialId, "movimentacoes"));
     const itens = [];
     snap.forEach((d) => itens.push({ id: d.id, ...d.data() }));
     itens.sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
