@@ -945,6 +945,35 @@ img { max-width: 100%; display: block; }
 }
 .card-obra h3 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
 .card-obra-info { font-size: 12.5px; color: #9A9A97; margin-bottom: 14px; }
+.card-manut-corpo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.card-manut-foto {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--borda-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-manut-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card-manut-foto-vazia svg {
+  width: 18px;
+  height: 18px;
+  color: #4A4A44;
+}
+.card-manut-texto h3 { margin-bottom: 2px; }
+.card-manut-texto .card-obra-info { margin-bottom: 0; }
 .card-obra-rodape {
   display: flex;
   align-items: center;
