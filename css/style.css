@@ -2860,3 +2860,34 @@ body.menu-mobile-aberto {
   padding: 3px 10px;
   white-space: nowrap;
 }
+
+/* =========================================================
+   MATERIAIS
+   ========================================================= */
+.mat-saldo {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 10px 0 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--borda-suave);
+}
+.mat-saldo strong {
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.mat-saldo span {
+  color: #9A9A97;
+  font-size: 13px;
+}
+.mat-acoes-rapidas {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mat-acoes-rapidas .btn-secundario {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  text-align: center;
+}
