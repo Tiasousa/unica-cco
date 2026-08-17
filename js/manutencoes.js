@@ -218,6 +218,7 @@ function renderizarListaManutencoes() {
     <div class="grid-obras">
       ${itens.map((m) => {
         const status = statusManutInfo(m.status);
+        const equip = manutEstado.equipamentos.find((e) => e.colecao === m.colecaoEquipamento && e.id === m.equipamentoId);
         return `
           <div class="card-obra${m.ativo === false ? " card-obra-inativa" : ""}">
             <div class="card-obra-topo">
@@ -229,8 +230,15 @@ function renderizarListaManutencoes() {
                   : `<button class="btn-icone" title="Desativar" data-desativar-manut="${escManut(m.id)}">${typeof iconeX === "function" ? iconeX() : "×"}</button>`}
               </div>
             </div>
-            <h3>${escManut(m.equipamentoNome)} · ${escManut(m.identificacao)}</h3>
-            <p class="card-obra-info">${escManut(m.tipoManutencaoNome || "Manutenção")} · ${escManut(m.categoriaRotulo || "")}</p>
+            <div class="card-manut-corpo">
+              ${equip?.fotoUrl
+                ? `<div class="card-manut-foto"><img src="${escManut(equip.fotoUrl)}" alt="" loading="lazy"></div>`
+                : `<div class="card-manut-foto card-manut-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/></svg></div>`}
+              <div class="card-manut-texto">
+                <h3>${escManut(m.equipamentoNome)} · ${escManut(m.identificacao)}</h3>
+                <p class="card-obra-info">${escManut(m.tipoManutencaoNome || "Manutenção")} · ${escManut(m.categoriaRotulo || "")}</p>
+              </div>
+            </div>
             <div class="card-obra-rodape">
               <span>Agendada: ${fmtDataManut(m.dataAgendada)}</span>
               <span>${m.dataConclusao ? "Concluída: " + fmtDataManut(m.dataConclusao) : ""}</span>
