@@ -663,6 +663,7 @@ function renderItemLancamentoApont(eq, indice) {
           <span>${escApont(eq.tipoRotulo)}</span>
           <h3>${escApont(eq.nome)} · ${escApont(eq.identificacao)}</h3>
         </div>
+        <button type="button" class="btn-secundario btn-checklist-apont" data-checklist-equip="${escApont(eq.colecao)}:${escApont(eq.id)}">Fazer Checklist</button>
         <div class="abast-medidor-anterior">
           <span>${escApont(eq.medidorRotulo)} anterior</span>
           <strong>${fmtNumeroApont(eq.medidorAtual)} ${escApont(eq.unidade)}</strong>
@@ -748,6 +749,14 @@ function configurarEventosItemApont(eq) {
   const chave = `${eq.colecao}:${eq.id}`;
   const container = document.querySelector(`[data-item-chave="${chave}"]`);
   if (!container) return;
+
+  container.querySelector(".btn-checklist-apont")?.addEventListener("click", () => {
+    if (typeof window.abrirPreenchimentoChecklist === "function") {
+      window.abrirPreenchimentoChecklist(eq.id, eq.colecao, () => {});
+    } else {
+      alert("O módulo de Checklist ainda não carregou. Recarregue a página.");
+    }
+  });
 
   const campoArquivo = container.querySelector('[data-campo-foto="arquivo"]');
   const campoPreview = container.querySelector('[data-campo-foto="preview"]');
