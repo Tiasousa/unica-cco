@@ -2777,15 +2777,15 @@ body.menu-mobile-aberto {
 /* Miniatura de foto dentro do card de seleção (usado tanto no
    Apontamento quanto no seletor de Manutenções) */
 .apont-card-foto {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: var(--radius-sm);
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 8px;
   overflow: hidden;
   background: var(--borda-suave);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
 }
 .apont-card-foto img {
   width: 100%;
@@ -2793,9 +2793,28 @@ body.menu-mobile-aberto {
   object-fit: cover;
 }
 .apont-card-foto-vazia svg {
-  width: 26px;
-  height: 26px;
+  width: 18px;
+  height: 18px;
   color: #4A4A44;
+}
+.cabecalho-card-equip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.cabecalho-card-equip-texto {
+  min-width: 0;
+  flex: 1;
+}
+.cabecalho-card-equip-texto .abast-card-tipo {
+  margin-bottom: 2px;
+}
+.cabecalho-card-equip-texto strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Botão que abre o seletor (substitui o <select> no formulário) */
@@ -2873,8 +2892,9 @@ body.menu-mobile-aberto {
 }
 .card-seletor-equip {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   background: var(--preto-card);
   border: 1px solid var(--borda-card);
   border-radius: var(--radius);
@@ -2882,6 +2902,9 @@ body.menu-mobile-aberto {
   cursor: pointer;
   text-align: left;
   transition: border-color var(--transicao), transform var(--transicao);
+}
+.card-seletor-equip .cabecalho-card-equip-texto {
+  min-width: 0;
 }
 .card-seletor-equip:hover {
   border-color: var(--amarelo);
