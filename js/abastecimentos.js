@@ -558,23 +558,42 @@ function injetarEstilosAbastecimentos() {
     }
 
     .abast-card-tipo {
-      margin-bottom: 14px;
+      margin-bottom: 2px;
       color: #777871;
       font-size: 10px;
       font-weight: 800;
       text-transform: uppercase;
     }
 
+    .cabecalho-card-equip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .cabecalho-card-equip-texto {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .cabecalho-card-equip-texto strong {
+      display: block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .abast-card-foto {
-      width: 100%;
-      aspect-ratio: 1 / 1;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
       border-radius: 8px;
       overflow: hidden;
       background: #1c1d20;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 10px;
     }
 
     .abast-card-foto img {
@@ -584,8 +603,8 @@ function injetarEstilosAbastecimentos() {
     }
 
     .abast-card-foto-vazia svg {
-      width: 24px;
-      height: 24px;
+      width: 18px;
+      height: 18px;
       color: #4A4A44;
     }
 
@@ -2769,21 +2788,24 @@ function renderCardsEquipamentosAbast() {
                 ✓
               </span>
 
-              ${item.fotoUrl
-                ? `<div class="abast-card-foto"><img src="${escAbast(item.fotoUrl)}" alt="" loading="lazy"></div>`
-                : `<div class="abast-card-foto abast-card-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg></div>`}
+              <div class="cabecalho-card-equip">
+                ${item.fotoUrl
+                  ? `<div class="abast-card-foto"><img src="${escAbast(item.fotoUrl)}" alt="" loading="lazy"></div>`
+                  : `<div class="abast-card-foto abast-card-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg></div>`}
+                <div class="cabecalho-card-equip-texto">
+                  <span class="abast-card-tipo">
+                    ${escAbast(
+                      item.tipoRotulo
+                    )}
+                  </span>
 
-              <span class="abast-card-tipo">
-                ${escAbast(
-                  item.tipoRotulo
-                )}
-              </span>
-
-              <strong>
-                ${escAbast(
-                  item.nome
-                )}
-              </strong>
+                  <strong>
+                    ${escAbast(
+                      item.nome
+                    )}
+                  </strong>
+                </div>
+              </div>
 
               <span class="abast-card-identificacao">
                 ${escAbast(
