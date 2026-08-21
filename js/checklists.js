@@ -97,7 +97,7 @@ async function carregarBaseChecklists() {
 }
 
 function itensDoTipo(tipoEquipamentoId) {
-  return checklistItensCadastro.filter((i) => i.tipoEquipamentoId === tipoEquipamentoId);
+  return checklistItensCadastro.filter((i) => Array.isArray(i.tipoEquipamentoIds) && i.tipoEquipamentoIds.includes(tipoEquipamentoId));
 }
 
 function atualizarAlertaChecklists() {
