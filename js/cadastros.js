@@ -249,7 +249,7 @@ async function carregarTabelaCadastro(chave) {
         </thead>
         <tbody>
           ${itens.map(item => `
-            <tr data-busca="${escaparHtml(String(item[config.campoPrincipal] || "").toLowerCase())}">
+            <tr data-busca="${escaparHtml(String(item[config.campoPrincipal] || "").toLowerCase())}" data-linha-id="${escaparHtml(item.id)}" class="linha-cadastro-clicavel">
               <td class="celula-principal">${escaparHtml(item[config.campoPrincipal]) || "—"}</td>
               ${colsSecundarias.map(c => `<td>${escaparHtml(formatarValorCampo(item, c))}</td>`).join("")}
               <td>${item.ativo === false ? '<span class="badge parada">Inativo</span>' : '<span class="badge ativa">Ativo</span>'}</td>
@@ -274,6 +274,19 @@ async function carregarTabelaCadastro(chave) {
 
     wrap.querySelectorAll("[data-editar]").forEach(btn => {
       btn.addEventListener("click", () => abrirModalCadastro(chave, btn.dataset.editar));
+    });
+    wrap.querySelectorAll(".linha-cadastro-clicavel").forEach(tr => {
+      tr.addEventListener("click", (e) => {
+        if (e.target.closest(".celula-acoes")) return;
+        wrap.querySelectorAll(".linha-cadastro-clicavel.selecionada").forEach(outra => {
+          if (outra !== tr) outra.classList.remove("selecionada");
+        });
+        tr.classList.toggle("selecionada");
+      });
+      tr.addEventListener("dblclick", (e) => {
+        if (e.target.closest(".celula-acoes")) return;
+        abrirModalCadastro(chave, tr.dataset.linhaId);
+      });
     });
     wrap.querySelectorAll("[data-desativar]").forEach(btn => {
       btn.addEventListener("click", () => alternarAtivo(chave, btn.dataset.desativar, false));
