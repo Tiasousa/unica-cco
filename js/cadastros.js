@@ -35,7 +35,7 @@ const CADASTROS_CONFIG = {
     colecao: "cadastros_checklist_itens", titulo: "Itens de Checklist", campoPrincipal: "nome",
     campos: [
       { id: "nome", label: "Item", tipo: "texto", obrigatorio: true },
-      { id: "tipoEquipamentoId", label: "Tipo de equipamento", tipo: "referencia", colecaoRef: "cadastros_tipos_equipamento" },
+      { id: "tipoEquipamentoIds", label: "Tipos de equipamento", tipo: "referencia-multipla", colecaoRef: "cadastros_tipos_equipamento" },
       { id: "ordem", label: "Ordem de exibição", tipo: "numero" },
     ],
   },
@@ -193,6 +193,11 @@ async function obterReferencias(colecaoRef) {
 
 function formatarValorCampo(item, campo) {
   const valor = item[campo.id];
+  if (campo.tipo === "referencia-multipla") {
+    const lista = Array.isArray(valor) ? valor : [];
+    if (lista.length === 0) return "—";
+    return lista.map((id) => campo._mapaRef?.[id] || "?").join(", ");
+  }
   if (valor === undefined || valor === null || valor === "") return "—";
   if (campo.tipo === "referencia") return campo._mapaRef?.[valor] || "—";
   if (campo.tipo === "select") return campo.opcoes.find(o => o.valor === valor)?.rotulo || valor;
@@ -222,7 +227,7 @@ async function carregarTabelaCadastro(chave) {
       itens.push({ id: d.id, ...dados });
     });
 
-    for (const campo of config.campos.filter(c => c.tipo === "referencia")) {
+    for (const campo of config.campos.filter(c => c.tipo === "referencia" || c.tipo === "referencia-multipla")) {
       const refs = await obterReferencias(campo.colecaoRef);
       campo._mapaRef = Object.fromEntries(refs.map(r => [r.id, r.nome]));
     }
@@ -330,6 +335,22 @@ function filtrarTabelaCadastro(termo) {
 
 function renderCampoForm(campo, dados) {
   const valorAtual = dados ? (dados[campo.id] ?? "") : "";
+  if (campo.tipo === "referencia-multipla") {
+    const selecionados = Array.isArray(valorAtual) ? valorAtual : [];
+    return `
+      <div class="campo campo-checkboxes-multiplos">
+        <label>${campo.label}</label>
+        <div class="lista-checkboxes-multiplos">
+          ${(campo._opcoes || []).map(o => `
+            <label class="opcao-checkbox-multiplo">
+              <input type="checkbox" class="check_${campo.id}" value="${o.id}" ${selecionados.includes(o.id) ? "checked" : ""}>
+              ${escaparHtml(o.nome)}
+            </label>
+          `).join("")}
+          ${(campo._opcoes || []).length === 0 ? `<p class="doc-vazio">Nenhuma opção cadastrada ainda.</p>` : ""}
+        </div>
+      </div>`;
+  }
   if (campo.tipo === "referencia") {
     return `
       <div class="campo">
@@ -404,7 +425,7 @@ async function abrirModalCadastro(chave, id) {
     if (snap.exists()) dadosExistentes = { id, ...snap.data() };
   }
 
-  for (const campo of config.campos.filter(c => c.tipo === "referencia")) {
+  for (const campo of config.campos.filter(c => c.tipo === "referencia" || c.tipo === "referencia-multipla")) {
     campo._opcoes = await obterReferencias(campo.colecaoRef);
   }
 
@@ -453,6 +474,15 @@ async function salvarCadastro(chave, idExistente) {
 
   const dados = {};
   for (const campo of config.campos) {
+    if (campo.tipo === "referencia-multipla") {
+      const marcados = Array.from(document.querySelectorAll(`.check_${campo.id}:checked`)).map(c => c.value);
+      if (campo.obrigatorio && marcados.length === 0) {
+        erro.textContent = `Selecione ao menos um item em "${campo.label}".`;
+        return;
+      }
+      dados[campo.id] = marcados;
+      continue;
+    }
     const campoEl = document.getElementById(`campo_${campo.id}`);
     let valor = campoEl.value;
     if (campo.tipo === "numero") valor = valor === "" ? null : Number(valor);
