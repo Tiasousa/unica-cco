@@ -33,8 +33,10 @@ function renderCardSeletorEquip(eq) {
       ${eq.fotoUrl
         ? `<div class="apont-card-foto"><img src="${escSeletorEquip(eq.fotoUrl)}" alt="" loading="lazy"></div>`
         : `<div class="apont-card-foto apont-card-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg></div>`}
-      <strong>${escSeletorEquip(eq.nome)}</strong>
-      <span class="card-seletor-equip-ident">${escSeletorEquip(eq.identificacao)}</span>
+      <div class="cabecalho-card-equip-texto">
+        <strong>${escSeletorEquip(eq.nome)}</strong>
+        <span class="card-seletor-equip-ident">${escSeletorEquip(eq.identificacao)}</span>
+      </div>
     </button>`;
 }
 
