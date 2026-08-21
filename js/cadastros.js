@@ -161,6 +161,9 @@ async function renderCadastro(chave) {
         </label>
         <button class="btn-primario" id="btnAdicionarCadastro">+ Adicionar</button>
       </div>
+      ${chave === "cad-funcionarios"
+        ? `<p class="dica-cadastro">💡 Duplo clique no nome mostra <strong>salário, empréstimo e vale</strong>. Os ícones ao lado editam o cadastro (✎), abrem documentos (📄) ou o mesmo painel financeiro (💰).</p>`
+        : ""}
       <div id="tabelaCadastroWrap">
         <p class="cadastro-carregando">Carregando...</p>
       </div>
@@ -254,7 +257,7 @@ async function carregarTabelaCadastro(chave) {
         </thead>
         <tbody>
           ${itens.map(item => `
-            <tr data-busca="${escaparHtml(String(item[config.campoPrincipal] || "").toLowerCase())}" data-linha-id="${escaparHtml(item.id)}" class="linha-cadastro-clicavel">
+            <tr data-busca="${escaparHtml(String(item[config.campoPrincipal] || "").toLowerCase())}" data-linha-id="${escaparHtml(item.id)}" data-nome-linha="${escaparHtml(item.nome || item[config.campoPrincipal] || "")}" class="linha-cadastro-clicavel">
               <td class="celula-principal">${escaparHtml(item[config.campoPrincipal]) || "—"}</td>
               ${colsSecundarias.map(c => `<td>${escaparHtml(formatarValorCampo(item, c))}</td>`).join("")}
               <td>${item.ativo === false ? '<span class="badge parada">Inativo</span>' : '<span class="badge ativa">Ativo</span>'}</td>
@@ -290,7 +293,11 @@ async function carregarTabelaCadastro(chave) {
       });
       tr.addEventListener("dblclick", (e) => {
         if (e.target.closest(".celula-acoes")) return;
-        abrirModalCadastro(chave, tr.dataset.linhaId);
+        if (chave === "cad-funcionarios" && typeof window.abrirConsignadosFuncionario === "function") {
+          window.abrirConsignadosFuncionario(tr.dataset.linhaId, tr.dataset.nomeLinha);
+        } else {
+          abrirModalCadastro(chave, tr.dataset.linhaId);
+        }
       });
     });
     wrap.querySelectorAll("[data-desativar]").forEach(btn => {
