@@ -811,6 +811,43 @@ img { max-width: 100%; display: block; }
 }
 .tabela-cadastro tr:last-child td { border-bottom: none; }
 .celula-principal { font-weight: 600; }
+.linha-cadastro-clicavel {
+  cursor: pointer;
+  transition: background var(--transicao);
+}
+.linha-cadastro-clicavel:hover {
+  background: rgba(255,184,0,0.05);
+}
+.linha-cadastro-clicavel.selecionada {
+  background: rgba(255,184,0,0.14);
+}
+.linha-cadastro-clicavel.selecionada td {
+  border-bottom-color: rgba(255,184,0,0.18);
+}
+.btn-whatsapp-salario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: #25D366;
+  color: #0B2E1A;
+  font-weight: 700;
+  font-size: 13.5px;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 11px 16px;
+  cursor: pointer;
+  margin: 10px 0 4px;
+  transition: filter var(--transicao);
+}
+.btn-whatsapp-salario:hover {
+  filter: brightness(1.05);
+}
+.btn-whatsapp-salario svg {
+  width: 18px;
+  height: 18px;
+}
 .celula-acoes { display: flex; gap: 6px; justify-content: flex-end; }
 
 .btn-icone {
