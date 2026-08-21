@@ -2778,7 +2778,7 @@ body.menu-mobile-aberto {
    Apontamento quanto no seletor de Manutenções) */
 .apont-card-foto {
   width: 100%;
-  aspect-ratio: 16 / 10;
+  aspect-ratio: 1 / 1;
   border-radius: var(--radius-sm);
   overflow: hidden;
   background: var(--borda-suave);
