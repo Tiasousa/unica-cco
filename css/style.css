@@ -3008,3 +3008,36 @@ body.menu-mobile-aberto {
   font-size: 12.5px;
   text-align: center;
 }
+
+/* =========================================================
+   CAMPO DE SELEÇÃO MÚLTIPLA (checkboxes)
+   ========================================================= */
+.campo-checkboxes-multiplos {
+  grid-column: 1 / -1;
+}
+.lista-checkboxes-multiplos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px 14px;
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.opcao-checkbox-multiplo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #C9C9C4;
+  cursor: pointer;
+}
+.opcao-checkbox-multiplo input[type="checkbox"] {
+  accent-color: var(--amarelo);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
