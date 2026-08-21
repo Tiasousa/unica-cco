@@ -512,7 +512,7 @@ function injetarEstilosAbastecimentos() {
 
     .abast-card-equipamento {
       position: relative;
-      min-height: 155px;
+      min-height: auto;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -563,6 +563,30 @@ function injetarEstilosAbastecimentos() {
       font-size: 10px;
       font-weight: 800;
       text-transform: uppercase;
+    }
+
+    .abast-card-foto {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #1c1d20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+
+    .abast-card-foto img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .abast-card-foto-vazia svg {
+      width: 24px;
+      height: 24px;
+      color: #4A4A44;
     }
 
     .abast-card-equipamento strong {
@@ -1282,6 +1306,10 @@ function adicionarSnapshotEquipamentos(
 
       unidade:
         config.unidade,
+
+      fotoUrl:
+        dados.fotoUrl ||
+        null,
 
       status:
         dados.status ||
@@ -2740,6 +2768,10 @@ function renderCardsEquipamentosAbast() {
               <span class="abast-card-check">
                 ✓
               </span>
+
+              ${item.fotoUrl
+                ? `<div class="abast-card-foto"><img src="${escAbast(item.fotoUrl)}" alt="" loading="lazy"></div>`
+                : `<div class="abast-card-foto abast-card-foto-vazia"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.2"/><path d="M8 6l1.5-2h5L16 6"/></svg></div>`}
 
               <span class="abast-card-tipo">
                 ${escAbast(
