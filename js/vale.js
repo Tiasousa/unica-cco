@@ -19,6 +19,16 @@ let valeMesFiltro = new Date().getMonth() + 1;
 let valeAnoFiltro = new Date().getFullYear();
 let valeEditandoId = null;
 let valeFuncionariosCache = [];
+let valeBuscaTexto = "";
+let valeFiltroFuncionarioId = "";
+
+function normVale(texto) {
+  return String(texto ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
 
 function escaparHtmlVale(texto) {
   const div = document.createElement("div");
@@ -85,6 +95,13 @@ async function renderVale() {
         </button>
       </div>
 
+      <div class="vale-filtros-lista">
+        <input type="search" id="buscaVale" placeholder="Buscar funcionário...">
+        <select id="filtroFuncionarioVale">
+          <option value="">Todos os funcionários</option>
+        </select>
+      </div>
+
       <div id="listaVales">
         <p class="doc-carregando">Carregando...</p>
       </div>
@@ -97,6 +114,14 @@ async function renderVale() {
   document.getElementById("formVale").addEventListener("submit", onSubmitVale);
   document.getElementById("valeMesAnterior").addEventListener("click", () => mudarMesVale(-1));
   document.getElementById("valeMesProximo").addEventListener("click", () => mudarMesVale(1));
+  document.getElementById("buscaVale").addEventListener("input", (e) => {
+    valeBuscaTexto = normVale(e.target.value);
+    carregarListaVales();
+  });
+  document.getElementById("filtroFuncionarioVale").addEventListener("change", (e) => {
+    valeFiltroFuncionarioId = e.target.value;
+    carregarListaVales();
+  });
 
   await carregarFuncionariosParaVale();
   atualizarLabelMesVale();
@@ -118,6 +143,13 @@ async function carregarFuncionariosParaVale() {
   const select = document.getElementById("valeFuncionarioId");
   if (select) {
     select.innerHTML = valeFuncionariosCache
+      .map((f) => `<option value="${f.id}">${escaparHtmlVale(f.nome)}</option>`)
+      .join("");
+  }
+
+  const filtro = document.getElementById("filtroFuncionarioVale");
+  if (filtro) {
+    filtro.innerHTML = `<option value="">Todos os funcionários</option>` + valeFuncionariosCache
       .map((f) => `<option value="${f.id}">${escaparHtmlVale(f.nome)}</option>`)
       .join("");
   }
@@ -166,7 +198,7 @@ async function carregarListaVales() {
   wrap.innerHTML = `<p class="doc-carregando">Carregando...</p>`;
 
   const { collection, getDocs, query, where } = window.fs;
-  let itens = [];
+  let itensDoMes = [];
   try {
     const q = query(
       collection(window.firebaseDb, "vales"),
@@ -174,21 +206,36 @@ async function carregarListaVales() {
       where("ano", "==", valeAnoFiltro)
     );
     const snap = await getDocs(q);
-    snap.forEach((d) => itens.push({ id: d.id, ...d.data() }));
+    snap.forEach((d) => itensDoMes.push({ id: d.id, ...d.data() }));
   } catch (erro) {
     console.error("Erro ao carregar vales:", erro);
     wrap.innerHTML = `<p class="doc-erro">Não foi possível carregar os vales.</p>`;
     return;
   }
 
-  itens.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+  itensDoMes.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
 
-  if (itens.length === 0) {
-    wrap.innerHTML = `<p class="doc-vazio">Nenhum vale registrado nesse mês.</p>`;
-    return;
+  // Indicadores calculados sobre o MÊS TODO, sem filtro de busca/funcionário —
+  // pra sempre refletir a realidade do mês, independente do que a pessoa
+  // esteja filtrando pra olhar no momento.
+  const totalMes = itensDoMes.reduce((soma, item) => soma + (Number(item.valor) || 0), 0);
+  const funcionariosComVale = new Set(itensDoMes.map((i) => i.funcionarioId)).size;
+
+  // Total acumulado por funcionário no mês (pra mostrar em cada card)
+  const totalPorFuncionario = {};
+  itensDoMes.forEach((item) => {
+    totalPorFuncionario[item.funcionarioId] = (totalPorFuncionario[item.funcionarioId] || 0) + (Number(item.valor) || 0);
+  });
+
+  // Agora aplica busca de texto + filtro por funcionário só na LISTAGEM
+  let itens = itensDoMes;
+  if (valeFiltroFuncionarioId) {
+    itens = itens.filter((i) => i.funcionarioId === valeFiltroFuncionarioId);
+  }
+  if (valeBuscaTexto) {
+    itens = itens.filter((i) => normVale(i.funcionarioNome).includes(valeBuscaTexto));
   }
 
-  const total = itens.reduce((soma, item) => soma + (Number(item.valor) || 0), 0);
   const cores = ["#FFB800", "#5AA9E6", "#E67E7E", "#7ED6A5", "#B98CE0", "#F2A65A"];
   const corPorNome = (nome) => {
     const chars = String(nome || "?").trim();
@@ -205,12 +252,40 @@ async function carregarListaVales() {
   wrap.innerHTML = `
     <div class="grid-indicadores grid-indicadores-vale">
       <article class="card-indicador">
-        <div class="topo"><span class="eyebrow">Total do mês</span></div>
-        <div class="valor">${formatarMoedaVale(total)}</div>
-        <div class="rotulo">${itens.length} vale${itens.length === 1 ? "" : "s"} registrado${itens.length === 1 ? "" : "s"}</div>
+        <div class="topo">
+          <span class="icone-bolha-vale" style="background:rgba(255,184,0,0.14); color:var(--amarelo);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="14" r="1.5"/></svg>
+          </span>
+          <span class="eyebrow">Total do mês</span>
+        </div>
+        <div class="valor">${formatarMoedaVale(totalMes)}</div>
+        <div class="rotulo">Valor total de vales</div>
+      </article>
+      <article class="card-indicador">
+        <div class="topo">
+          <span class="icone-bolha-vale" style="background:rgba(90,169,230,0.14); color:#5AA9E6;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </span>
+          <span class="eyebrow">Funcionários</span>
+        </div>
+        <div class="valor">${funcionariosComVale}</div>
+        <div class="rotulo">Com vales no mês</div>
+      </article>
+      <article class="card-indicador">
+        <div class="topo">
+          <span class="icone-bolha-vale" style="background:rgba(126,214,165,0.14); color:#7ED6A5;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6M9 16h6M9 8h6"/><rect x="4" y="3" width="16" height="18" rx="2"/></svg>
+          </span>
+          <span class="eyebrow">Lançamentos</span>
+        </div>
+        <div class="valor">${itensDoMes.length}</div>
+        <div class="rotulo">Total de lançamentos</div>
       </article>
     </div>
-    <div class="grid-cards-vale">
+
+    ${itens.length === 0
+      ? `<p class="doc-vazio">Nenhum vale encontrado com esse filtro.</p>`
+      : `<div class="grid-cards-vale">
       ${itens.map((item) => `
         <div class="card-vale">
           <div class="card-vale-topo">
@@ -228,9 +303,17 @@ async function carregarListaVales() {
               </button>
             </div>
           </div>
-          <div class="card-vale-valor">${formatarMoedaVale(item.valor)}</div>
+          <div class="card-vale-rodape">
+            <div class="card-vale-valor">${formatarMoedaVale(item.valor)}</div>
+            <div class="card-vale-total-func">Total no mês: <strong>${formatarMoedaVale(totalPorFuncionario[item.funcionarioId] || 0)}</strong></div>
+          </div>
         </div>
       `).join("")}
+    </div>`}
+
+    <div class="vale-aviso-rodape">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <span>Os vales registrados são adiantamentos. Utilize a folha de pagamento (ou o painel de Consignados do funcionário) pra realizar os descontos de verdade.</span>
     </div>
   `;
 
