@@ -192,6 +192,63 @@ function atualizarLabelMesVale() {
   if (label) label.textContent = `${MESES_VALE[valeMesFiltro - 1]} de ${valeAnoFiltro}`;
 }
 
+function renderGruposPorDataVale(itens, totalPorFuncionario, corPorNome, iniciais) {
+  // itens já vem ordenado do mais recente pro mais antigo (carregarListaVales
+  // ordena por data desc) — só precisamos juntar quem tem a mesma data.
+  const grupos = [];
+  itens.forEach((item) => {
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.data === item.data) {
+      ultimo.itens.push(item);
+    } else {
+      grupos.push({ data: item.data, itens: [item] });
+    }
+  });
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const ontem = new Date();
+  ontem.setDate(ontem.getDate() - 1);
+  const ontemIso = ontem.toISOString().slice(0, 10);
+
+  return `
+    <div class="lista-vale-por-data">
+      ${grupos.map((grupo) => {
+        const totalDoDia = grupo.itens.reduce((soma, i) => soma + (Number(i.valor) || 0), 0);
+        let rotuloData = formatarDataVale(grupo.data);
+        if (grupo.data === hoje) rotuloData = `Hoje, ${rotuloData}`;
+        else if (grupo.data === ontemIso) rotuloData = `Ontem, ${rotuloData}`;
+
+        return `
+          <div class="grupo-data-vale">
+            <div class="grupo-data-vale-cabecalho">
+              <span>${escaparHtmlVale(rotuloData)}</span>
+              <span class="grupo-data-vale-total">${formatarMoedaVale(totalDoDia)}</span>
+            </div>
+            ${grupo.itens.map((item) => `
+              <div class="linha-vale">
+                <span class="card-vale-avatar" style="background:${corPorNome(item.funcionarioNome)}20; color:${corPorNome(item.funcionarioNome)};">${escaparHtmlVale(iniciais(item.funcionarioNome))}</span>
+                <div class="linha-vale-info">
+                  <strong>${escaparHtmlVale(item.funcionarioNome)}</strong>
+                  <span>Total no mês: ${formatarMoedaVale(totalPorFuncionario[item.funcionarioId] || 0)}</span>
+                </div>
+                <div class="linha-vale-valor">${formatarMoedaVale(item.valor)}</div>
+                <div class="linha-vale-acoes">
+                  <button class="btn-icone" title="Editar" data-editar-vale="${item.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  </button>
+                  <button class="btn-icone" title="Excluir" data-excluir-vale="${item.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
 async function carregarListaVales() {
   const wrap = document.getElementById("listaVales");
   if (!wrap) return;
@@ -285,31 +342,7 @@ async function carregarListaVales() {
 
     ${itens.length === 0
       ? `<p class="doc-vazio">Nenhum vale encontrado com esse filtro.</p>`
-      : `<div class="grid-cards-vale">
-      ${itens.map((item) => `
-        <div class="card-vale">
-          <div class="card-vale-topo">
-            <span class="card-vale-avatar" style="background:${corPorNome(item.funcionarioNome)}20; color:${corPorNome(item.funcionarioNome)};">${escaparHtmlVale(iniciais(item.funcionarioNome))}</span>
-            <div class="card-vale-info">
-              <strong>${escaparHtmlVale(item.funcionarioNome)}</strong>
-              <span>${formatarDataVale(item.data)}</span>
-            </div>
-            <div class="card-vale-acoes">
-              <button class="btn-icone" title="Editar" data-editar-vale="${item.id}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-              </button>
-              <button class="btn-icone" title="Excluir" data-excluir-vale="${item.id}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-          </div>
-          <div class="card-vale-rodape">
-            <div class="card-vale-valor">${formatarMoedaVale(item.valor)}</div>
-            <div class="card-vale-total-func">Total no mês: <strong>${formatarMoedaVale(totalPorFuncionario[item.funcionarioId] || 0)}</strong></div>
-          </div>
-        </div>
-      `).join("")}
-    </div>`}
+      : renderGruposPorDataVale(itens, totalPorFuncionario, corPorNome, iniciais)}
 
     <div class="vale-aviso-rodape">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
