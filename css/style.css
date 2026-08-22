@@ -2735,10 +2735,73 @@ body.menu-mobile-aberto {
 .grid-indicadores-vale .card-indicador {
   max-width: 260px;
 }
-.grid-cards-vale {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+.lista-vale-por-data {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.grupo-data-vale-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--borda-card);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #9A9A97;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.grupo-data-vale-total {
+  color: var(--amarelo);
+  font-variant-numeric: tabular-nums;
+}
+.grupo-data-vale {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.linha-vale {
+  display: flex;
+  align-items: center;
   gap: 12px;
+  background: var(--preto-card);
+  border: 1px solid var(--borda-card);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  transition: border-color var(--transicao);
+}
+.linha-vale:hover {
+  border-color: #3A3A3A;
+}
+.linha-vale-info {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.linha-vale-info strong {
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.linha-vale-info span {
+  font-size: 11px;
+  color: #8B8B86;
+}
+.linha-vale-valor {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.linha-vale-acoes {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
 }
 .card-vale {
   background: var(--preto-card);
