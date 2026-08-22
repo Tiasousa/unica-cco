@@ -85,7 +85,7 @@ async function renderVale() {
         </button>
       </div>
 
-      <div id="listaVales" class="lista-vales">
+      <div id="listaVales">
         <p class="doc-carregando">Carregando...</p>
       </div>
 
@@ -189,31 +189,49 @@ async function carregarListaVales() {
   }
 
   const total = itens.reduce((soma, item) => soma + (Number(item.valor) || 0), 0);
+  const cores = ["#FFB800", "#5AA9E6", "#E67E7E", "#7ED6A5", "#B98CE0", "#F2A65A"];
+  const corPorNome = (nome) => {
+    const chars = String(nome || "?").trim();
+    const soma = chars.split("").reduce((s, c) => s + c.charCodeAt(0), 0);
+    return cores[soma % cores.length];
+  };
+  const iniciais = (nome) => {
+    const partes = String(nome || "?").trim().split(" ").filter(Boolean);
+    if (partes.length === 0) return "?";
+    if (partes.length === 1) return partes[0][0].toUpperCase();
+    return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+  };
 
   wrap.innerHTML = `
-    <div class="vale-total-mes">Total do mês: <strong>${formatarMoedaVale(total)}</strong></div>
-    <table class="tabela-vale">
-      <thead>
-        <tr><th>Funcionário</th><th>Data</th><th>Valor</th><th></th></tr>
-      </thead>
-      <tbody>
-        ${itens.map((item) => `
-          <tr>
-            <td>${escaparHtmlVale(item.funcionarioNome)}</td>
-            <td>${formatarDataVale(item.data)}</td>
-            <td>${formatarMoedaVale(item.valor)}</td>
-            <td class="celula-acoes">
+    <div class="grid-indicadores grid-indicadores-vale">
+      <article class="card-indicador">
+        <div class="topo"><span class="eyebrow">Total do mês</span></div>
+        <div class="valor">${formatarMoedaVale(total)}</div>
+        <div class="rotulo">${itens.length} vale${itens.length === 1 ? "" : "s"} registrado${itens.length === 1 ? "" : "s"}</div>
+      </article>
+    </div>
+    <div class="grid-cards-vale">
+      ${itens.map((item) => `
+        <div class="card-vale">
+          <div class="card-vale-topo">
+            <span class="card-vale-avatar" style="background:${corPorNome(item.funcionarioNome)}20; color:${corPorNome(item.funcionarioNome)};">${escaparHtmlVale(iniciais(item.funcionarioNome))}</span>
+            <div class="card-vale-info">
+              <strong>${escaparHtmlVale(item.funcionarioNome)}</strong>
+              <span>${formatarDataVale(item.data)}</span>
+            </div>
+            <div class="card-vale-acoes">
               <button class="btn-icone" title="Editar" data-editar-vale="${item.id}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
               </button>
               <button class="btn-icone" title="Excluir" data-excluir-vale="${item.id}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
-            </td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
+            </div>
+          </div>
+          <div class="card-vale-valor">${formatarMoedaVale(item.valor)}</div>
+        </div>
+      `).join("")}
+    </div>
   `;
 
   wrap.querySelectorAll("[data-editar-vale]").forEach((btn) => {
