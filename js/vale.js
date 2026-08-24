@@ -76,7 +76,10 @@ async function renderVale() {
         </div>
         <div class="campo">
           <label>Valor</label>
-          <input type="number" id="valeValor" step="0.01" min="0" required>
+          <div class="input-moeda-wrap">
+            <span class="prefixo-moeda">R$</span>
+            <input type="text" inputmode="numeric" id="valeValor" placeholder="0,00" oninput="mascaraMoedaInput(this)" required>
+          </div>
         </div>
         <div class="campo campo-botao-vale">
           <button type="button" class="btn-secundario" id="btnCancelarVale">Cancelar</button>
@@ -369,7 +372,7 @@ function iniciarEdicaoVale(id, itens) {
   document.getElementById("valeEditandoId").value = id;
   document.getElementById("valeFuncionarioId").value = item.funcionarioId;
   document.getElementById("valeData").value = item.data;
-  document.getElementById("valeValor").value = item.valor;
+  document.getElementById("valeValor").value = Number(item.valor).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   document.getElementById("btnSalvarVale").textContent = "Salvar alterações";
   form.scrollIntoView({ behavior: "smooth", block: "start" });
 }
@@ -380,7 +383,8 @@ async function onSubmitVale(e) {
 
   const funcionarioId = document.getElementById("valeFuncionarioId").value;
   const data = document.getElementById("valeData").value;
-  const valor = Number(document.getElementById("valeValor").value);
+  const valorTexto = document.getElementById("valeValor").value;
+  const valor = Number(valorTexto.replace(/\./g, "").replace(",", "."));
   const funcionario = valeFuncionariosCache.find((f) => f.id === funcionarioId);
 
   if (!funcionarioId || !data || !valor) {
