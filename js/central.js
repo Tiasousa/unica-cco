@@ -83,17 +83,16 @@ function calcularIndicadores(dados) {
   const emManutencao = [...maquinas, ...caminhoes].filter((e) => e.status === "manutencao").length;
 
   const hoje = new Date().toISOString().slice(0, 10);
-  const producaoPorUnidade = {};
+  const percentuaisHoje = [];
   apontamentos.filter((a) => a.data === hoje).forEach((a) => {
     (a.itens || []).forEach((item) => {
-      if (!item.quantidadeProduzida) return;
-      const unidade = item.unidadeProducaoNome || "un";
-      producaoPorUnidade[unidade] = (producaoPorUnidade[unidade] || 0) + Number(item.quantidadeProduzida);
+      if (item.percentualTrabalhado !== undefined && item.percentualTrabalhado !== null) {
+        percentuaisHoje.push(Number(item.percentualTrabalhado));
+      }
     });
   });
-  const unidadesProducao = Object.entries(producaoPorUnidade).sort((a, b) => b[1] - a[1]);
-  const producaoHoje = unidadesProducao.length
-    ? unidadesProducao.map(([un, val]) => `${fmtNumCentral(val)} ${un}`).join(" · ")
+  const utilizacaoHoje = percentuaisHoje.length
+    ? Math.round(percentuaisHoje.reduce((soma, v) => soma + v, 0) / percentuaisHoje.length) + "%"
     : "—";
 
   const manutencoesPendentes = manutencoes.filter((m) => m.status === "agendada" || m.status === "em_andamento").length;
@@ -115,7 +114,7 @@ function calcularIndicadores(dados) {
 
   const alertas = manutencoesPendentes + checklistsComProblema + materiaisEstoqueBaixo;
 
-  return { obrasAtivas, maquinasTrabalhando, caminhoesTrabalhando, emManutencao, producaoHoje, alertas };
+  return { obrasAtivas, maquinasTrabalhando, caminhoesTrabalhando, emManutencao, utilizacaoHoje, alertas };
 }
 
 function calcularProducaoSemana(apontamentos) {
@@ -125,14 +124,21 @@ function calcularProducaoSemana(apontamentos) {
     d.setDate(d.getDate() - i);
     const iso = d.toISOString().slice(0, 10);
     const rotulo = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][d.getDay()];
-    dias.push({ iso, dia: rotulo, valor: 0 });
+    dias.push({ iso, dia: rotulo, percentuais: [] });
   }
   apontamentos.forEach((a) => {
     const diaEncontrado = dias.find((d) => d.iso === a.data);
     if (!diaEncontrado) return;
     (a.itens || []).forEach((item) => {
-      diaEncontrado.valor += Number(item.quantidadeProduzida) || 0;
+      if (item.percentualTrabalhado !== undefined && item.percentualTrabalhado !== null) {
+        diaEncontrado.percentuais.push(Number(item.percentualTrabalhado));
+      }
     });
+  });
+  dias.forEach((d) => {
+    d.valor = d.percentuais.length
+      ? Math.round(d.percentuais.reduce((soma, v) => soma + v, 0) / d.percentuais.length)
+      : 0;
   });
   return dias;
 }
@@ -193,7 +199,7 @@ function renderTelaCentral(dados) {
 
   const i = calcularIndicadores(dados);
   const producaoSemana = calcularProducaoSemana(dados.apontamentos);
-  const maxProd = Math.max(...producaoSemana.map((d) => d.valor), 1);
+  const maxProd = 100;
 
   const ultimosApontamentos = dados.apontamentos.slice(0, 4).map((a) => ({
     obra: a.obraNome || "Obra",
@@ -263,8 +269,8 @@ function renderTelaCentral(dados) {
           <span class="eyebrow">Produção</span>
           <span class="icone-indicador">${iconeSvg('<path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-3-3L4 15.6"/>')}</span>
         </div>
-        <div class="valor" style="font-size:${i.producaoHoje.length > 12 ? "18px" : "28px"};">${i.producaoHoje}</div>
-        <div class="rotulo">Produção do dia</div>
+        <div class="valor">${i.utilizacaoHoje}</div>
+        <div class="rotulo">Utilização da frota hoje</div>
       </div>
 
       <div class="card-indicador ${i.alertas > 0 ? "tipo-atencao" : ""}">
@@ -282,13 +288,13 @@ function renderTelaCentral(dados) {
 
       <div class="painel">
         <div class="painel-titulo">
-          <h2>Produção da semana</h2>
+          <h2>Utilização da frota na semana</h2>
           <a href="#" data-pagina="relatorios">Ver relatórios</a>
         </div>
         <div class="grafico-barras">
           ${producaoSemana.map((d) => `
             <div class="barra-col">
-              <div class="barra${d.valor === 0 ? " fraca" : ""}" style="height:${(d.valor / maxProd * 100) || 2}%"></div>
+              <div class="barra${d.valor === 0 ? " fraca" : ""}" style="height:${(d.valor / maxProd * 100) || 2}%" title="${d.valor}%"></div>
               <span>${d.dia}</span>
             </div>
           `).join("")}
