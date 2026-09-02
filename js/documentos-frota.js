@@ -2,20 +2,19 @@
 // FROTA · DOCUMENTOS
 // ---------------------------------------------------------
 // Controla vencimento de Licenciamento (CRLV) e Seguro por
-// equipamento (máquina ou caminhão). Cada documento guarda a
-// data de vencimento + um anexo (foto ou PDF, comprimido e
-// salvo como base64 no Firestore — mesmo padrão já usado nos
-// documentos de Funcionários, sem depender do Storage).
+// equipamento (máquina ou caminhão), além de Nota Fiscal e
+// Manual. Arquivos vão pro Firebase Storage — o Firestore
+// guarda só a data de vencimento + link/metadados do anexo.
 //
 // Guardado em: maquinas/{id}/documentos/{tipo} e
 //              caminhoes/{id}/documentos/{tipo}
-// tipo: "licenciamento" | "seguro"
+// tipo: "licenciamento" | "seguro" | "nota_fiscal" | "manual"
 //
 // Alerta: documento vencido ou vencendo em até 30 dias entra
 // no contador do sininho (alertaDocumentosFrota).
 // =========================================================
 
-const DOCFROTA_LIMITE_BYTES = 850 * 1024;
+const DOCFROTA_LIMITE_BYTES = 20 * 1024 * 1024; // 20MB — teto de bom senso, não limitação técnica
 const DOCFROTA_DIAS_ALERTA = 30;
 
 const DOCFROTA_TIPOS = [
@@ -74,6 +73,17 @@ function verificarFirebaseDocFrota() {
   if (!window.firebaseDb || !window.fs) {
     throw new Error("O Firebase ainda não está pronto. Recarregue a página.");
   }
+}
+
+function verificarStorageDocFrota() {
+  if (!window.firebaseStorage || !window.fst) {
+    throw new Error("O Storage ainda não está pronto. Recarregue a página.");
+  }
+}
+
+function extensaoArquivoDocFrota(nomeArquivo) {
+  const partes = String(nomeArquivo || "").split(".");
+  return partes.length > 1 ? partes.pop().toLowerCase() : "bin";
 }
 
 /* =========================================================
@@ -224,14 +234,14 @@ function renderizarListaDocFrota() {
               const doc = equip.documentos[tipo.id];
               const status = tipo.temVencimento
                 ? statusDocFrota(doc?.dataVencimento)
-                : statusAnexoSimples(!!doc?.dados);
+                : statusAnexoSimples(!!doc?.url);
               return `
                 <button type="button" class="linha-doc-frota" data-abrir-doc-frota="${escDocFrota(equip.colecao)}:${escDocFrota(equip.id)}:${tipo.id}">
                   <div class="linha-doc-frota-info">
                     <strong>${tipo.label}</strong>
                     <span class="doc-data">${tipo.temVencimento
                       ? (doc?.dataVencimento ? "Vence em " + fmtDataDocFrota(doc.dataVencimento) : "Sem data cadastrada")
-                      : (doc?.dados ? "Arquivo anexado" : "Nenhum arquivo ainda")}</span>
+                      : (doc?.url ? "Arquivo anexado" : "Nenhum arquivo ainda")}</span>
                   </div>
                   ${status.badge ? `<span class="badge ${status.badge}">${escDocFrota(status.rotulo)}</span>` : `<span class="badge-vazio">${tipo.temVencimento ? "Cadastrar" : "Anexar"}</span>`}
                 </button>
@@ -280,8 +290,8 @@ function abrirModalDocFrota(colecao, id, tipoId) {
           </div>` : ""}
           <div class="campo">
             <label>Anexo (foto ou PDF)</label>
-            ${doc?.dados
-              ? `<p class="doc-data" style="margin-bottom:8px;">Arquivo atual: <a href="${doc.dados}" target="_blank" rel="noopener">Ver anexo</a> ${doc.enviadoEm ? "· enviado em " + (doc.enviadoEm.toDate ? doc.enviadoEm.toDate().toLocaleDateString("pt-BR") : "") : ""}</p>`
+            ${doc?.url
+              ? `<p class="doc-data" style="margin-bottom:8px;">Arquivo atual: <a href="${doc.url}" target="_blank" rel="noopener">Ver anexo</a> ${doc.enviadoEm ? "· enviado em " + (doc.enviadoEm.toDate ? doc.enviadoEm.toDate().toLocaleDateString("pt-BR") : "") : ""}</p>`
               : ""}
             <input type="file" id="docFrotaArquivo" accept="image/*,.pdf">
           </div>
@@ -307,50 +317,17 @@ function abrirModalDocFrota(colecao, id, tipoId) {
   });
 }
 
-function comprimirImagemDocFrota(arquivo, maxLargura = 1000, qualidade = 0.7) {
-  return new Promise((resolve, reject) => {
-    const leitor = new FileReader();
-    leitor.onload = (evento) => {
-      const img = new Image();
-      img.onload = () => {
-        const escala = Math.min(1, maxLargura / img.width);
-        const largura = Math.round(img.width * escala);
-        const altura = Math.round(img.height * escala);
-        const canvas = document.createElement("canvas");
-        canvas.width = largura;
-        canvas.height = altura;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, largura, altura);
-        resolve(canvas.toDataURL("image/jpeg", qualidade));
-      };
-      img.onerror = () => reject(new Error("Não foi possível ler essa imagem."));
-      img.src = evento.target.result;
-    };
-    leitor.onerror = () => reject(new Error("Não foi possível ler esse arquivo."));
-    leitor.readAsDataURL(arquivo);
-  });
-}
-
-function lerArquivoComoBase64DocFrota(arquivo) {
-  return new Promise((resolve, reject) => {
-    const leitor = new FileReader();
-    leitor.onload = (evento) => resolve(evento.target.result);
-    leitor.onerror = () => reject(new Error("Não foi possível ler esse arquivo."));
-    leitor.readAsDataURL(arquivo);
-  });
-}
-
-function tamanhoBase64EmBytesDocFrota(dataUrl) {
-  const base64 = dataUrl.split(",")[1] || "";
-  return Math.round((base64.length * 3) / 4);
-}
-
 async function salvarDocFrota(colecao, id, tipoId, docExistente) {
   const erroEl = document.getElementById("docFrotaErro");
   erroEl.textContent = "";
 
   const dataVencimento = document.getElementById("docFrotaVencimento")?.value || null;
   const arquivo = document.getElementById("docFrotaArquivo").files[0];
+
+  if (arquivo && arquivo.size > DOCFROTA_LIMITE_BYTES) {
+    erroEl.textContent = `Arquivo muito pesado (${Math.round(arquivo.size / 1024 / 1024)}MB). O limite é 20MB.`;
+    return;
+  }
 
   const botao = document.getElementById("btnSalvarDocFrota");
   botao.disabled = true;
@@ -360,25 +337,22 @@ async function salvarDocFrota(colecao, id, tipoId, docExistente) {
     const dados = { dataVencimento };
 
     if (arquivo) {
-      const ehImagem = arquivo.type.startsWith("image/");
-      const dataUrl = ehImagem
-        ? await comprimirImagemDocFrota(arquivo)
-        : await lerArquivoComoBase64DocFrota(arquivo);
+      verificarStorageDocFrota();
+      const { ref, uploadBytes, getDownloadURL } = window.fst;
+      const ext = extensaoArquivoDocFrota(arquivo.name);
+      const caminho = `frota/${colecao}/${id}/documentos/${tipoId}.${ext}`;
+      const storageRef = ref(window.firebaseStorage, caminho);
 
-      const tamanho = tamanhoBase64EmBytesDocFrota(dataUrl);
-      if (tamanho > DOCFROTA_LIMITE_BYTES) {
-        erroEl.textContent = ehImagem
-          ? "Imagem muito pesada mesmo após compressão. Tenta tirar a foto com menos resolução."
-          : `PDF muito pesado (${Math.round(tamanho / 1024)}KB). O limite é ~830KB — comprime o PDF ou envia uma foto do documento em vez dele.`;
-        botao.disabled = false;
-        botao.textContent = "Salvar";
-        return;
-      }
-      dados.dados = dataUrl;
+      await uploadBytes(storageRef, arquivo);
+      const url = await getDownloadURL(storageRef);
+
+      dados.url = url;
       dados.nomeArquivo = arquivo.name;
-    } else if (docExistente?.dados) {
-      dados.dados = docExistente.dados;
+      dados.storagePath = caminho;
+    } else if (docExistente?.url) {
+      dados.url = docExistente.url;
       dados.nomeArquivo = docExistente.nomeArquivo || null;
+      dados.storagePath = docExistente.storagePath || null;
     }
 
     verificarFirebaseDocFrota();
@@ -393,7 +367,7 @@ async function salvarDocFrota(colecao, id, tipoId, docExistente) {
     renderizarListaDocFrota();
   } catch (erro) {
     console.error("Erro ao salvar documento da frota:", erro);
-    erroEl.textContent = "Não foi possível salvar. Tente novamente.";
+    erroEl.textContent = "Não foi possível salvar. Verifique sua conexão e tente novamente.";
     botao.disabled = false;
     botao.textContent = "Salvar";
   }
