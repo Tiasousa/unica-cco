@@ -116,31 +116,6 @@ function verificarFirebaseApont() {
   }
 }
 
-// Mesma técnica usada em frota.js: comprime a foto no navegador e guarda
-// como texto dentro do próprio registro (não usamos Storage ainda).
-function comprimirImagemApont(arquivo, maxLargura = 640, qualidade = 0.6) {
-  return new Promise((resolve, reject) => {
-    const leitor = new FileReader();
-    leitor.onload = (evento) => {
-      const img = new Image();
-      img.onload = () => {
-        const escala = Math.min(1, maxLargura / img.width);
-        const largura = Math.round(img.width * escala);
-        const altura = Math.round(img.height * escala);
-        const canvas = document.createElement("canvas");
-        canvas.width = largura;
-        canvas.height = altura;
-        canvas.getContext("2d").drawImage(img, 0, 0, largura, altura);
-        resolve(canvas.toDataURL("image/jpeg", qualidade));
-      };
-      img.onerror = () => reject(new Error("Não foi possível ler essa imagem."));
-      img.src = evento.target.result;
-    };
-    leitor.onerror = () => reject(new Error("Não foi possível ler esse arquivo."));
-    leitor.readAsDataURL(arquivo);
-  });
-}
-
 /* =========================================================
    CARREGAMENTO DA BASE
    ========================================================= */
@@ -687,15 +662,6 @@ function renderItemLancamentoApont(eq, indice) {
         <label>Ocorrência (opcional)</label>
         <textarea data-campo="ocorrencia" rows="2" placeholder="Alguma observação sobre o dia deste equipamento..."></textarea>
       </div>
-
-      <div class="campo" style="margin-top:12px;">
-        <label>Foto (opcional)</label>
-        <input type="file" accept="image/*" data-campo-foto="arquivo">
-        <div class="preview-foto-frota" data-campo-foto="preview">
-          <span class="preview-foto-vazio">${obterIconePlaceholderFrota ? obterIconePlaceholderFrota(eq.tipo) : ""}</span>
-        </div>
-        <input type="hidden" data-campo="fotoUrl">
-      </div>
     </div>
   `;
 }
@@ -710,34 +676,6 @@ function configurarEventosItemApont(eq) {
       window.abrirPreenchimentoChecklist(eq.id, eq.colecao, () => {});
     } else {
       alert("O módulo de Checklist ainda não carregou. Recarregue a página.");
-    }
-  });
-
-  const campoArquivo = container.querySelector('[data-campo-foto="arquivo"]');
-  const campoPreview = container.querySelector('[data-campo-foto="preview"]');
-  const campoFotoOculto = container.querySelector('[data-campo="fotoUrl"]');
-
-  campoArquivo?.addEventListener("change", async () => {
-    const arquivo = campoArquivo.files?.[0];
-    if (!arquivo) return;
-    if (!arquivo.type.startsWith("image/")) {
-      alert("Selecione um arquivo de imagem.");
-      campoArquivo.value = "";
-      return;
-    }
-    try {
-      const dataUrl = await comprimirImagemApont(arquivo);
-      if (dataUrl.length > 700000) {
-        alert("Essa imagem ficou grande demais mesmo comprimida. Tente outra foto.");
-        campoArquivo.value = "";
-        return;
-      }
-      campoFotoOculto.value = dataUrl;
-      campoPreview.innerHTML = `<img src="${dataUrl}" alt="">`;
-    } catch (erro) {
-      console.error("Erro ao processar foto:", erro);
-      alert("Não foi possível processar essa foto. Tente outra.");
-      campoArquivo.value = "";
     }
   });
 }
@@ -769,7 +707,6 @@ function coletarItensNovoApont() {
       unidade: eq.unidade,
       percentualTrabalhado,
       ocorrencia: obterValor("ocorrencia") || null,
-      fotoUrl: obterValor("fotoUrl") || null,
     });
   }
 
