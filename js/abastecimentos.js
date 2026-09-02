@@ -679,6 +679,11 @@ function injetarEstilosAbastecimentos() {
       font-size: 11px;
     }
 
+    .abast-barra-botoes {
+      display: flex;
+      gap: 10px;
+    }
+
     .abast-resumo-lancamento {
       display: grid;
       grid-template-columns:
@@ -748,6 +753,11 @@ function injetarEstilosAbastecimentos() {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 12px;
+    }
+
+    .abast-campos-lancamento-simples {
+      grid-template-columns: 1fr;
+      max-width: 320px;
     }
 
     .abast-erro {
@@ -2619,17 +2629,36 @@ function renderSelecaoNovoAbastecimento() {
 
       </div>
 
-      <button
-        type="button"
-        class="btn-primario"
-        id="btnContinuarAbast"
-        disabled
-      >
-        Continuar
-      </button>
+      <div class="abast-barra-botoes">
+        <button
+          type="button"
+          class="btn-secundario"
+          id="btnCancelarSelecaoAbast"
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          class="btn-primario"
+          id="btnContinuarAbast"
+          disabled
+        >
+          Continuar
+        </button>
+      </div>
 
     </div>
   `;
+
+  document
+    .getElementById(
+      "btnCancelarSelecaoAbast"
+    )
+    ?.addEventListener(
+      "click",
+      renderHistoricoAbastecimentos
+    );
 
   document
     .getElementById(
@@ -3222,35 +3251,7 @@ function renderItemLancamentoAbast(
 
       </div>
 
-      <div class="abast-campos-lancamento">
-
-        <div class="campo">
-
-          <label for="medidorAbast${indice}">
-            Novo
-            ${escAbast(
-              item.medidorRotulo
-                .toLowerCase()
-            )}
-            (${escAbast(
-              item.unidade
-            )}) *
-          </label>
-
-          <input
-            type="number"
-            id="medidorAbast${indice}"
-            data-medidor="${indice}"
-            value="${
-              item.medidorAtual ??
-              ""
-            }"
-            min="0"
-            step="0.01"
-            required
-          >
-
-        </div>
+      <div class="abast-campos-lancamento abast-campos-lancamento-simples">
 
         <div class="campo">
 
@@ -3266,9 +3267,12 @@ function renderItemLancamentoAbast(
             step="0.01"
             placeholder="Ex.: 120"
             required
+            autofocus
           >
 
         </div>
+
+        <input type="hidden" data-medidor="${indice}" value="">
 
       </div>
 
@@ -3280,12 +3284,15 @@ function renderItemLancamentoAbast(
 function coletarItensNovoAbast() {
   return selecionadosAbast()
     .map((item, indice) => {
+      const medidorInput =
+        document.querySelector(
+          `[data-medidor="${indice}"]`
+        )?.value;
+
       const medidor =
-        numAbast(
-          document.querySelector(
-            `[data-medidor="${indice}"]`
-          )?.value
-        );
+        medidorInput === "" || medidorInput == null
+          ? item.medidorAtual
+          : numAbast(medidorInput);
 
       const litros =
         numAbast(
@@ -3295,15 +3302,7 @@ function coletarItensNovoAbast() {
         );
 
       if (
-        medidor === null ||
-        medidor < 0
-      ) {
-        throw new Error(
-          `Informe o novo ${item.medidorRotulo.toLowerCase()} de ${item.nome}.`
-        );
-      }
-
-      if (
+        medidor !== null &&
         item.medidorAtual !== null &&
         medidor <
           item.medidorAtual
