@@ -589,7 +589,7 @@ function renderLancamentoApont() {
   const obra = apontEstado.obras.find((o) => o.id === apontEstado.dadosGerais.obraId);
 
   area.innerHTML = `
-    <section class="painel-cadastro modulo-abastecimentos">
+    <section class="painel-cadastro modulo-abastecimentos modulo-apontamento-lancamento">
       <div class="abast-cabecalho-interno">
         <div>
           <span class="abast-eyebrow">Novo apontamento</span>
