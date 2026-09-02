@@ -3249,3 +3249,46 @@ body.menu-mobile-aberto {
 .dica-cadastro strong {
   color: var(--branco);
 }
+
+/* =========================================================
+   PERCENTUAL TRABALHADO (Apontamento simplificado)
+   ========================================================= */
+.campo-percentual-apont label:first-child {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: block;
+}
+.opcoes-percentual-apont {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.opcoes-percentual-apont label {
+  flex: 1;
+  min-width: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 10px;
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  color: #C9C9C4;
+  cursor: pointer;
+  transition: border-color var(--transicao), background var(--transicao);
+}
+.opcoes-percentual-apont label:has(input:checked) {
+  border-color: var(--amarelo);
+  background: rgba(255,184,0,0.1);
+  color: var(--branco);
+}
+.opcoes-percentual-apont input[type="radio"] {
+  accent-color: var(--amarelo);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
