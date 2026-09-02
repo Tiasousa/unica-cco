@@ -366,11 +366,13 @@ function abrirDetalhesApontamento(id) {
                 </div>
               </div>
               <p style="font-size:12.5px; color:#9A9A97; margin-bottom:6px;">
-                Operador: ${escApont(item.operadorNome || "—")} · ${escApont(item.horaInicial || "—")}–${escApont(item.horaFinal || "—")}
+                ${item.percentualTrabalhado !== undefined && item.percentualTrabalhado !== null
+                  ? `Trabalhou: <strong style="color:${item.percentualTrabalhado === 0 ? "var(--perigo)" : "var(--branco)"}">${item.percentualTrabalhado}%</strong>`
+                  : `Operador: ${escApont(item.operadorNome || "—")} · ${escApont(item.horaInicial || "—")}–${escApont(item.horaFinal || "—")}`}
               </p>
-              <p style="font-size:12.5px; color:#9A9A97; margin-bottom:6px;">
-                Serviço: ${escApont(item.servicoNome || "—")} ${item.quantidadeProduzida ? `· ${fmtNumeroApont(item.quantidadeProduzida)} ${escApont(item.unidadeProducaoNome || "")}` : ""}
-              </p>
+              ${item.servicoNome ? `<p style="font-size:12.5px; color:#9A9A97; margin-bottom:6px;">
+                Serviço: ${escApont(item.servicoNome)} ${item.quantidadeProduzida ? `· ${fmtNumeroApont(item.quantidadeProduzida)} ${escApont(item.unidadeProducaoNome || "")}` : ""}
+              </p>` : ""}
               ${item.litros ? `<p style="font-size:12.5px; color:#9A9A97; margin-bottom:6px;">Abastecimento: ${fmtNumeroApont(item.litros)} L de ${escApont(item.combustivelNome || "")}</p>` : ""}
               ${item.ocorrencia ? `<p style="font-size:12.5px; color:#F5A623;">Ocorrência: ${escApont(item.ocorrencia)}</p>` : ""}
               ${item.fotoUrl ? `<div class="preview-foto-frota" style="margin-top:8px;"><img src="${escApont(item.fotoUrl)}" alt=""></div>` : ""}
@@ -640,7 +642,7 @@ function renderLancamentoApont() {
     <div class="abast-barra-acao">
       <div>
         <strong>Revise antes de salvar</strong>
-        <span>Serviço e o medidor são obrigatórios em cada item</span>
+        <span>Marca o percentual trabalhado de cada equipamento</span>
       </div>
       <div class="abast-acoes-finais">
         <button type="button" class="btn-secundario" id="btnVoltarSelecaoApont">Voltar</button>
@@ -668,72 +670,21 @@ function renderItemLancamentoApont(eq, indice) {
           <h3>${escApont(eq.nome)} · ${escApont(eq.identificacao)}</h3>
         </div>
         <button type="button" class="btn-secundario btn-checklist-apont" data-checklist-equip="${escApont(eq.colecao)}:${escApont(eq.id)}">Fazer Checklist</button>
-        <div class="abast-medidor-anterior">
-          <span>${escApont(eq.medidorRotulo)} anterior</span>
-          <strong>${fmtNumeroApont(eq.medidorAtual)} ${escApont(eq.unidade)}</strong>
-        </div>
       </div>
 
-      <div class="abast-campos-lancamento">
-        <div class="campo">
-          <label>Operador / motorista</label>
-          <select data-campo="operadorId">
-            <option value="">Selecione</option>
-            ${apontEstado.funcionarios.map((f) => `<option value="${escApont(f.id)}">${escApont(f.nome)}</option>`).join("")}
-          </select>
-        </div>
-        <div class="campo">
-          <label>${escApont(eq.medidorRotulo)} atual (${escApont(eq.unidade)}) *</label>
-          <input type="number" step="0.01" min="0" data-campo="medidorAtual" placeholder="${fmtNumeroApont(eq.medidorAtual)}">
-        </div>
-        <div class="campo">
-          <label>Hora inicial</label>
-          <input type="time" data-campo="horaInicial">
-        </div>
-        <div class="campo">
-          <label>Hora final</label>
-          <input type="time" data-campo="horaFinal">
-        </div>
-        <div class="campo">
-          <label>Serviço executado *</label>
-          <select data-campo="servicoId">
-            <option value="">Selecione</option>
-            ${apontEstado.servicos.map((s) => `<option value="${escApont(s.id)}">${escApont(s.nome)}</option>`).join("")}
-          </select>
-        </div>
-        <div class="campo">
-          <label>Quantidade produzida</label>
-          <input type="number" step="0.01" min="0" data-campo="quantidadeProduzida" placeholder="Ex.: 120">
-        </div>
-        <div class="campo">
-          <label>Unidade de medida</label>
-          <select data-campo="unidadeId">
-            <option value="">Selecione</option>
-            ${apontEstado.unidades.map((u) => `<option value="${escApont(u.id)}">${escApont(u.nome)}${u.sigla ? " (" + escApont(u.sigla) + ")" : ""}</option>`).join("")}
-          </select>
-        </div>
-        <div class="campo">
-          <label>Combustível abastecido</label>
-          <select data-campo="combustivelId">
-            <option value="">Nenhum</option>
-            ${apontEstado.combustiveis.map((c) => `<option value="${escApont(c.id)}">${escApont(c.nome)}</option>`).join("")}
-          </select>
-        </div>
-        <div class="campo">
-          <label>Litros abastecidos</label>
-          <input type="number" step="0.01" min="0" data-campo="litros" placeholder="Ex.: 80">
-        </div>
-        <div class="campo">
-          <label>Motivo de paralisação (se houve)</label>
-          <select data-campo="motivoParalisacaoId">
-            <option value="">Nenhum</option>
-            ${apontEstado.motivos.map((m) => `<option value="${escApont(m.id)}">${escApont(m.nome)}</option>`).join("")}
-          </select>
+      <div class="campo campo-percentual-apont">
+        <label>O equipamento trabalhou hoje? *</label>
+        <div class="opcoes-percentual-apont">
+          <label><input type="radio" name="percentual_${indice}" value="0"> Não trabalhou</label>
+          <label><input type="radio" name="percentual_${indice}" value="25"> 25%</label>
+          <label><input type="radio" name="percentual_${indice}" value="50"> 50%</label>
+          <label><input type="radio" name="percentual_${indice}" value="75"> 75%</label>
+          <label><input type="radio" name="percentual_${indice}" value="100" checked> 100%</label>
         </div>
       </div>
 
       <div class="campo" style="margin-top:12px;">
-        <label>Ocorrência</label>
+        <label>Ocorrência (opcional)</label>
         <textarea data-campo="ocorrencia" rows="2" placeholder="Alguma observação sobre o dia deste equipamento..."></textarea>
       </div>
 
@@ -802,26 +753,9 @@ function coletarItensNovoApont() {
 
     const obterValor = (campo) => container.querySelector(`[data-campo="${campo}"]`)?.value?.trim() || "";
 
-    const servicoId = obterValor("servicoId");
-    if (!servicoId) throw new Error(`Selecione o serviço executado para "${eq.nome}".`);
-
-    const medidorTexto = obterValor("medidorAtual");
-    const medidorValor = medidorTexto === "" ? null : Number(medidorTexto);
-    if (medidorValor === null || !Number.isFinite(medidorValor) || medidorValor < 0) {
-      throw new Error(`Informe o ${eq.medidorRotulo.toLowerCase()} atual de "${eq.nome}".`);
-    }
-
-    const servico = apontEstado.servicos.find((s) => s.id === servicoId);
-    const operadorId = obterValor("operadorId");
-    const operador = apontEstado.funcionarios.find((f) => f.id === operadorId);
-    const unidadeId = obterValor("unidadeId");
-    const unidade = apontEstado.unidades.find((u) => u.id === unidadeId);
-    const combustivelId = obterValor("combustivelId");
-    const combustivel = apontEstado.combustiveis.find((c) => c.id === combustivelId);
-    const motivoParalisacaoId = obterValor("motivoParalisacaoId");
-    const motivo = apontEstado.motivos.find((m) => m.id === motivoParalisacaoId);
-    const quantidadeTexto = obterValor("quantidadeProduzida");
-    const litrosTexto = obterValor("litros");
+    const percentualMarcado = container.querySelector(`input[name^="percentual_"]:checked`);
+    if (!percentualMarcado) throw new Error(`Marca se "${eq.nome}" trabalhou hoje (0/25/50/75/100%).`);
+    const percentualTrabalhado = Number(percentualMarcado.value);
 
     itens.push({
       tipoItem: eq.tipo,
@@ -833,21 +767,7 @@ function coletarItensNovoApont() {
       campoMedidor: eq.campoMedidor,
       medidorRotulo: eq.medidorRotulo,
       unidade: eq.unidade,
-      medidorAtual: medidorValor,
-      operadorId: operadorId || null,
-      operadorNome: operador?.nome || null,
-      horaInicial: obterValor("horaInicial") || null,
-      horaFinal: obterValor("horaFinal") || null,
-      servicoId,
-      servicoNome: servico?.nome || null,
-      quantidadeProduzida: quantidadeTexto === "" ? null : Number(quantidadeTexto),
-      unidadeProducaoId: unidadeId || null,
-      unidadeProducaoNome: unidade?.nome || null,
-      combustivelId: combustivelId || null,
-      combustivelNome: combustivel?.nome || null,
-      litros: litrosTexto === "" ? null : Number(litrosTexto),
-      motivoParalisacaoId: motivoParalisacaoId || null,
-      motivoParalisacaoNome: motivo?.nome || null,
+      percentualTrabalhado,
       ocorrencia: obterValor("ocorrencia") || null,
       fotoUrl: obterValor("fotoUrl") || null,
     });
@@ -897,7 +817,6 @@ async function salvarNovoApontamento() {
 
     await Promise.all(itens.map((item) =>
       updateDoc(doc(window.firebaseDb, item.colecaoEquipamento, item.equipamentoId), {
-        [item.campoMedidor]: item.medidorAtual,
         ultimoApontamentoId: salvo.id,
         ultimoApontamentoEm: serverTimestamp(),
         atualizadoEm: serverTimestamp(),
