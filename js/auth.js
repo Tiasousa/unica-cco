@@ -36,18 +36,29 @@ import {
   query,
   where,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-storage.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // disponíveis globalmente para os próximos módulos (Obras, Frota etc.)
 window.firebaseAuth = auth;
 window.firebaseDb = db;
+window.firebaseStorage = storage;
 // funções do Firestore, para uso em scripts que não são módulos
 // (cadastros.js, e os próximos: obras.js, frota.js, apontamento.js)
 window.fs = { doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp, query, where };
+// funções do Storage (arquivos: documentos, holerites, etc.)
+window.fst = { ref, uploadBytes, getDownloadURL, deleteObject };
 
 // Usado só para preencher nome/cargo na primeira vez que cada
 // admin loga. Depois disso os dados moram só no Firestore.
