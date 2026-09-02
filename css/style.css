@@ -1447,6 +1447,19 @@ body.menu-mobile-aberto {
   padding-bottom: 92px;
 }
 
+.modulo-apontamento-lancamento {
+  padding-bottom: 0;
+}
+.modulo-apontamento-lancamento .abast-barra-acao {
+  position: static;
+  left: auto;
+  right: auto;
+  margin-top: 20px;
+  border-radius: var(--radius);
+  border: 1px solid var(--borda-card);
+  backdrop-filter: none;
+}
+
 .abast-cabecalho-interno {
   display: flex;
   align-items: flex-start;
@@ -1937,6 +1950,10 @@ body.menu-mobile-aberto {
 @media (max-width: 860px) {
   .modulo-abastecimentos {
     padding-bottom: 90px;
+  }
+
+  .modulo-apontamento-lancamento {
+    padding-bottom: 0;
   }
 
   .abast-cabecalho-interno {
