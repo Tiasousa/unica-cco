@@ -3319,3 +3319,140 @@ body.menu-mobile-aberto {
   height: 15px;
   cursor: pointer;
 }
+
+/* =========================================================
+   CARDS DE PERCENTUAL TRABALHADO (Apontamento — versão com
+   anel de progresso, substitui os botões simples)
+   ========================================================= */
+.cards-percentual-apont {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 860px) {
+  .cards-percentual-apont {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 420px) {
+  .cards-percentual-apont {
+    grid-template-columns: 1fr;
+  }
+}
+
+.card-percentual-apont {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 12px;
+  background: #141414;
+  border: 1.5px solid #2E2E2E;
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--transicao), background var(--transicao), transform var(--transicao);
+}
+.card-percentual-apont input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.card-percentual-apont:hover {
+  border-color: #454545;
+  transform: translateY(-1px);
+}
+.card-percentual-apont:has(input:checked) {
+  border-color: var(--amarelo);
+  background: rgba(255, 184, 0, 0.08);
+}
+.card-percentual-apont.card-percentual-completo:has(input:checked) {
+  border-color: var(--sucesso);
+  background: rgba(52, 199, 123, 0.08);
+}
+
+.anel-percentual-apont {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.anel-percentual-apont svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.anel-percentual-fundo {
+  fill: none;
+  stroke: #2A2A2A;
+  stroke-width: 5;
+}
+.anel-percentual-progresso {
+  fill: none;
+  stroke: var(--amarelo);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dasharray var(--transicao);
+}
+.card-percentual-completo .anel-percentual-progresso {
+  stroke: var(--sucesso);
+}
+.anel-percentual-numero {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--branco);
+  white-space: nowrap;
+}
+.card-percentual-legenda {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #C9C9C4;
+  line-height: 1.3;
+}
+.card-percentual-apont:has(input:checked) .card-percentual-legenda {
+  color: var(--branco);
+}
+
+/* Resumo do apontamento — Equipamento | Data | Percentual | Status */
+.resumo-item-apont {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #101010;
+  border: 1px solid #2A2A2A;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+}
+.resumo-item-apont-equip {
+  font-weight: 700;
+  color: var(--branco);
+}
+.resumo-item-apont-data,
+.resumo-item-apont-percentual {
+  color: #9A9A97;
+}
+.resumo-item-apont-data::before,
+.resumo-item-apont-percentual::before,
+.resumo-item-apont-status::before {
+  content: "·";
+  margin-right: 8px;
+  color: #4A4A44;
+}
+.resumo-item-apont-status {
+  color: var(--amarelo);
+  font-weight: 600;
+  margin-left: auto;
+}
+@media (max-width: 480px) {
+  .resumo-item-apont-status {
+    margin-left: 0;
+  }
+}
