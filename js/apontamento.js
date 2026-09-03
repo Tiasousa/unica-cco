@@ -620,7 +620,7 @@ function renderLancamentoApont() {
         <span>Marca o percentual trabalhado de cada equipamento</span>
       </div>
       <div class="abast-acoes-finais">
-        <button type="button" class="btn-secundario" id="btnVoltarSelecaoApont">Voltar</button>
+        <button type="button" class="btn-primario" id="btnVoltarSelecaoApont">Voltar</button>
         <button type="button" class="btn-primario" id="btnSalvarApont">Salvar apontamento</button>
       </div>
     </div>
