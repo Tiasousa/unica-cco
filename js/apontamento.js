@@ -589,7 +589,7 @@ function renderLancamentoApont() {
   const obra = apontEstado.obras.find((o) => o.id === apontEstado.dadosGerais.obraId);
 
   area.innerHTML = `
-    <section class="painel-cadastro modulo-abastecimentos modulo-apontamento-lancamento">
+    <section class="painel-cadastro modulo-abastecimentos modulo-apontamento-lancamento" style="padding-bottom: 0;">
       <div class="abast-cabecalho-interno">
         <div>
           <span class="abast-eyebrow">Novo apontamento</span>
@@ -614,14 +614,14 @@ function renderLancamentoApont() {
       <div class="abast-erro" id="erroSalvarApont"></div>
     </section>
 
-    <div class="abast-barra-acao">
+    <div class="abast-barra-acao" style="position: static; left: auto; right: auto; margin-top: 20px; border-radius: 14px; border: 1px solid #2A2B30; backdrop-filter: none; flex-wrap: nowrap;">
       <div>
         <strong>Revise antes de salvar</strong>
         <span>Marca o percentual trabalhado de cada equipamento</span>
       </div>
-      <div class="abast-acoes-finais">
-        <button type="button" class="btn-primario" id="btnVoltarSelecaoApont">Voltar</button>
-        <button type="button" class="btn-primario" id="btnSalvarApont">Salvar apontamento</button>
+      <div class="abast-acoes-finais" style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px; padding-top: 0; margin-top: 0; border-top: none;">
+        <button type="button" class="btn-primario" id="btnVoltarSelecaoApont" style="width: auto;">Voltar</button>
+        <button type="button" class="btn-primario" id="btnSalvarApont" style="width: auto;">Salvar apontamento</button>
       </div>
     </div>
   `;
