@@ -648,19 +648,40 @@ function renderItemLancamentoApont(eq, indice) {
       </div>
 
       <div class="campo campo-percentual-apont">
-        <label>O equipamento trabalhou hoje? *</label>
-        <div class="opcoes-percentual-apont">
-          <label><input type="radio" name="percentual_${indice}" value="0"> Não trabalhou</label>
-          <label><input type="radio" name="percentual_${indice}" value="25"> 25%</label>
-          <label><input type="radio" name="percentual_${indice}" value="50"> 50%</label>
-          <label><input type="radio" name="percentual_${indice}" value="75"> 75%</label>
-          <label><input type="radio" name="percentual_${indice}" value="100" checked> 100%</label>
+        <label>Quanto do dia este equipamento trabalhou? *</label>
+        <div class="cards-percentual-apont">
+          ${[25, 50, 75, 100].map((valor) => {
+            const ehCompleto = valor === 100;
+            const marcadoPadrao = valor === 100 ? "checked" : "";
+            const circunferencia = 2 * Math.PI * 26;
+            const preenchido = (valor / 100) * circunferencia;
+            return `
+            <label class="card-percentual-apont ${ehCompleto ? "card-percentual-completo" : ""}" data-percentual-card="${indice}:${valor}">
+              <input type="radio" name="percentual_${indice}" value="${valor}" ${marcadoPadrao}>
+              <div class="anel-percentual-apont">
+                <svg viewBox="0 0 60 60">
+                  <circle class="anel-percentual-fundo" cx="30" cy="30" r="26"></circle>
+                  <circle class="anel-percentual-progresso" cx="30" cy="30" r="26"
+                    stroke-dasharray="${preenchido.toFixed(2)} ${circunferencia.toFixed(2)}"></circle>
+                </svg>
+                <span class="anel-percentual-numero">${valor}%</span>
+              </div>
+              <span class="card-percentual-legenda">Trabalhou ${valor}%${ehCompleto ? " · Dia completo" : ""}</span>
+            </label>`;
+          }).join("")}
         </div>
       </div>
 
       <div class="campo" style="margin-top:12px;">
         <label>Ocorrência (opcional)</label>
         <textarea data-campo="ocorrencia" rows="2" placeholder="Alguma observação sobre o dia deste equipamento..."></textarea>
+      </div>
+
+      <div class="resumo-item-apont" data-resumo-percentual="${indice}">
+        <span class="resumo-item-apont-equip">${escApont(eq.nome)} · ${escApont(eq.identificacao)}</span>
+        <span class="resumo-item-apont-data">${fmtDataApont(apontEstado.dadosGerais.data)}</span>
+        <span class="resumo-item-apont-percentual">100%</span>
+        <span class="resumo-item-apont-status">A ser salvo</span>
       </div>
     </div>
   `;
@@ -678,6 +699,13 @@ function configurarEventosItemApont(eq) {
       alert("O módulo de Checklist ainda não carregou. Recarregue a página.");
     }
   });
+
+  const resumoPercentual = container.querySelector(".resumo-item-apont-percentual");
+  container.querySelectorAll('input[type="radio"][name^="percentual_"]').forEach((radio) => {
+    radio.addEventListener("change", () => {
+      if (resumoPercentual) resumoPercentual.textContent = `${radio.value}%`;
+    });
+  });
 }
 
 function coletarItensNovoApont() {
@@ -692,7 +720,7 @@ function coletarItensNovoApont() {
     const obterValor = (campo) => container.querySelector(`[data-campo="${campo}"]`)?.value?.trim() || "";
 
     const percentualMarcado = container.querySelector(`input[name^="percentual_"]:checked`);
-    if (!percentualMarcado) throw new Error(`Marca se "${eq.nome}" trabalhou hoje (0/25/50/75/100%).`);
+    if (!percentualMarcado) throw new Error(`Marca quanto "${eq.nome}" trabalhou hoje (25/50/75/100%).`);
     const percentualTrabalhado = Number(percentualMarcado.value);
 
     itens.push({
