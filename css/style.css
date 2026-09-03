@@ -1458,6 +1458,16 @@ body.menu-mobile-aberto {
   border-radius: var(--radius);
   border: 1px solid var(--borda-card);
   backdrop-filter: none;
+  flex-wrap: nowrap;
+}
+.modulo-apontamento-lancamento .abast-acoes-finais {
+  flex-direction: row !important;
+  padding-top: 0;
+  margin-top: 0;
+  border-top: none;
+}
+.modulo-apontamento-lancamento .abast-acoes-finais button {
+  width: auto !important;
 }
 
 .abast-cabecalho-interno {
