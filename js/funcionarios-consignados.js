@@ -408,7 +408,7 @@
             ${holeriteEncontrado
               ? `<div class="linha-holerite-whats">
                   <span>${MESES_WHATS[(holeriteEncontrado.mes || 1) - 1]} de ${holeriteEncontrado.ano}</span>
-                  <a href="${holeriteEncontrado.url}" target="_blank" rel="noopener" class="btn-secundario" id="btnAbrirHoleriteWhats">Abrir holerite</a>
+                  <a href="${holeriteEncontrado.url}" target="_blank" rel="noopener" class="btn-primario" id="btnAbrirHoleriteWhats">Abrir holerite</a>
                 </div>
                 <p class="doc-data" style="margin-top:6px;">O WhatsApp não deixa anexar arquivo pelo link automaticamente — abre o holerite aqui, e depois anexa ele manualmente dentro da conversa (é só um clique a mais, no ícone de clipe do WhatsApp).</p>`
               : `<p class="doc-vazio">Nenhum holerite cadastrado pra esse funcionário ainda. Sobe em "Documentos" antes, se quiser mandar junto.</p>`}
