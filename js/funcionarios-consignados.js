@@ -328,9 +328,16 @@
       // Vale do mês de referência do salário (sempre o mês anterior
       // ao calendário atual — regra do negócio: salário de Agosto
       // paga no 5º dia útil de Setembro) — vem do módulo Vale (vale.js)
-      const totalVale = typeof window.obterTotalValeMesFuncionario === "function"
-        ? await window.obterTotalValeMesFuncionario(funcionarioId)
-        : 0;
+      let totalVale = 0;
+      let erroVale = null;
+      try {
+        totalVale = typeof window.obterTotalValeMesFuncionario === "function"
+          ? await window.obterTotalValeMesFuncionario(funcionarioId)
+          : 0;
+      } catch (erroDoVale) {
+        console.error("Erro ao buscar vale do período de referência:", erroDoVale);
+        erroVale = erroDoVale;
+      }
 
       const MESES_CONS_REF = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
       const refMes = typeof window.obterMesReferenciaSalario === "function"
@@ -344,9 +351,23 @@
       wrap.innerHTML = `
         ${renderCardResumoCons("Salário", formatarMoeda(salario), "")}
         ${renderCardResumoCons("Empréstimo", formatarMoeda(totalEmprestimo), "tipo-atencao")}
-        ${renderCardResumoCons(rotuloVale, formatarMoeda(totalVale), "tipo-atencao")}
+        ${erroVale
+          ? renderCardResumoCons(rotuloVale, "Erro", "tipo-atencao")
+          : renderCardResumoCons(rotuloVale, formatarMoeda(totalVale), "tipo-atencao")}
         ${renderCardResumoCons("Sobra", formatarMoeda(sobra), sobra < 0 ? "tipo-atencao" : "tipo-frota")}
       `;
+
+      if (erroVale) {
+        const mensagemErro = String(erroVale?.message || erroVale || "Erro desconhecido");
+        wrap.insertAdjacentHTML("beforeend", `
+          <p class="doc-erro" style="margin-top:8px;">
+            Não foi possível calcular o Vale desse período: ${escaparHtmlCons(mensagemErro)}
+            ${mensagemErro.includes("index") || mensagemErro.includes("FAILED_PRECONDITION")
+              ? " — abre o Console do navegador (F12) e procura um link azul pra criar o índice que falta no Firebase."
+              : ""}
+          </p>
+        `);
+      }
 
       const botaoWhats = document.getElementById("btnEnviarSalarioWhats");
       if (botaoWhats) {
