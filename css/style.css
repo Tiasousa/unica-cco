@@ -3471,7 +3471,7 @@ body.menu-mobile-aberto {
   font-size: 13px;
   font-weight: 600;
 }
-.linha-holerite-whats .btn-secundario {
+.linha-holerite-whats a {
   padding: 6px 12px;
   font-size: 12px;
   white-space: nowrap;
