@@ -442,23 +442,77 @@ window.renderVale = renderVale;
 // saber quanto aquele funcionário específico recebeu de vale no
 // mês vigente, sem duplicar essa consulta em outro arquivo.
 window.obterTotalValeMesFuncionario = async function (funcionarioId) {
-  const hoje = new Date();
-  const mes = hoje.getMonth() + 1;
-  const ano = hoje.getFullYear();
+  const { dataInicio, dataFim } = window.obterPeriodoReferenciaSalario();
   const { collection, getDocs, query, where } = window.fs;
   try {
     const q = query(
       collection(window.firebaseDb, "vales"),
       where("funcionarioId", "==", funcionarioId),
-      where("mes", "==", mes),
-      where("ano", "==", ano)
+      where("data", ">=", dataInicio),
+      where("data", "<=", dataFim)
     );
     const snap = await getDocs(q);
     let total = 0;
     snap.forEach((d) => { total += Number(d.data().valor) || 0; });
     return total;
   } catch (erro) {
-    console.error("Erro ao calcular vale do mês:", erro);
+    console.error("Erro ao calcular vale do período de referência:", erro);
     return 0;
   }
+};
+
+// O salário sendo pago AGORA é sempre referente ao mês ANTERIOR
+// (regra do negócio: salário de Agosto paga no 5º dia útil de
+// Setembro, salário de Setembro paga no 5º dia útil de Outubro,
+// e assim por diante). Por isso o "mês de referência" pro cálculo
+// de vale/desconto nunca é o mês corrente do calendário.
+window.obterMesReferenciaSalario = function () {
+  const hoje = new Date();
+  let mes = hoje.getMonth() + 1 - 1; // mês anterior
+  let ano = hoje.getFullYear();
+  if (mes < 1) { mes = 12; ano -= 1; }
+  return { mes, ano };
+};
+
+// Acha a data do N-ésimo dia útil de um mês, contando a partir do
+// dia 1. Considera só sábado/domingo como não-útil — não tem como
+// saber feriados sem uma lista cadastrada, então em mês com feriado
+// nesse intervalo o "dia útil real" pode cair 1 dia depois do que
+// esta conta calcula.
+function calcularEnesimoDiaUtilVale(ano, mesIndexado1, n) {
+  const data = new Date(ano, mesIndexado1 - 1, 1);
+  let contador = 0;
+  while (true) {
+    const diaSemana = data.getDay(); // 0 = domingo, 6 = sábado
+    if (diaSemana !== 0 && diaSemana !== 6) {
+      contador++;
+      if (contador === n) return new Date(data);
+    }
+    data.setDate(data.getDate() + 1);
+  }
+}
+
+function formatarDataISOVale(data) {
+  const ano = data.getFullYear();
+  const mes = String(data.getMonth() + 1).padStart(2, "0");
+  const dia = String(data.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+// Período completo que compõe o desconto do salário sendo pago
+// agora: do dia 1 do mês de referência (mês anterior) até o 5º dia
+// útil do mês corrente — porque o fechamento da folha só acontece
+// nesse 5º dia útil, então vale dado nos primeiros dias do mês
+// corrente ainda entra no desconto do mês anterior.
+window.obterPeriodoReferenciaSalario = function () {
+  const hoje = new Date();
+  const anoAtual = hoje.getFullYear();
+  const mesAtual = hoje.getMonth() + 1;
+  const { mes: mesRef, ano: anoRef } = window.obterMesReferenciaSalario();
+
+  const dataInicio = `${anoRef}-${String(mesRef).padStart(2, "0")}-01`;
+  const quintoDiaUtil = calcularEnesimoDiaUtilVale(anoAtual, mesAtual, 5);
+  const dataFim = formatarDataISOVale(quintoDiaUtil);
+
+  return { dataInicio, dataFim, mesRef, anoRef };
 };
