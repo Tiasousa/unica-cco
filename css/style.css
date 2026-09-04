@@ -3456,3 +3456,23 @@ body.menu-mobile-aberto {
     margin-left: 0;
   }
 }
+
+.linha-holerite-whats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: #141414;
+  border: 1px solid #2E2E2E;
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+}
+.linha-holerite-whats span {
+  font-size: 13px;
+  font-weight: 600;
+}
+.linha-holerite-whats .btn-secundario {
+  padding: 6px 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
