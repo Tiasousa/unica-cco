@@ -444,21 +444,16 @@ window.renderVale = renderVale;
 window.obterTotalValeMesFuncionario = async function (funcionarioId) {
   const { dataInicio, dataFim } = window.obterPeriodoReferenciaSalario();
   const { collection, getDocs, query, where } = window.fs;
-  try {
-    const q = query(
-      collection(window.firebaseDb, "vales"),
-      where("funcionarioId", "==", funcionarioId),
-      where("data", ">=", dataInicio),
-      where("data", "<=", dataFim)
-    );
-    const snap = await getDocs(q);
-    let total = 0;
-    snap.forEach((d) => { total += Number(d.data().valor) || 0; });
-    return total;
-  } catch (erro) {
-    console.error("Erro ao calcular vale do período de referência:", erro);
-    return 0;
-  }
+  const q = query(
+    collection(window.firebaseDb, "vales"),
+    where("funcionarioId", "==", funcionarioId),
+    where("data", ">=", dataInicio),
+    where("data", "<=", dataFim)
+  );
+  const snap = await getDocs(q);
+  let total = 0;
+  snap.forEach((d) => { total += Number(d.data().valor) || 0; });
+  return total;
 };
 
 // O salário sendo pago AGORA é sempre referente ao mês ANTERIOR
