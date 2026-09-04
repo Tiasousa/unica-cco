@@ -325,10 +325,18 @@
         }
       });
 
-      // Vale do mês vigente — vem do módulo Vale (vale.js)
+      // Vale do mês de referência do salário (sempre o mês anterior
+      // ao calendário atual — regra do negócio: salário de Agosto
+      // paga no 5º dia útil de Setembro) — vem do módulo Vale (vale.js)
       const totalVale = typeof window.obterTotalValeMesFuncionario === "function"
         ? await window.obterTotalValeMesFuncionario(funcionarioId)
         : 0;
+
+      const MESES_CONS_REF = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      const refMes = typeof window.obterMesReferenciaSalario === "function"
+        ? window.obterMesReferenciaSalario()
+        : null;
+      const rotuloVale = refMes ? `Vale (ref. ${MESES_CONS_REF[refMes.mes - 1]})` : "Vale";
 
       const sobra = salario - totalEmprestimo - totalVale;
       dadosFinanceirosAtuais = { salario, totalEmprestimo, totalVale, sobra, telefone };
@@ -336,7 +344,7 @@
       wrap.innerHTML = `
         ${renderCardResumoCons("Salário", formatarMoeda(salario), "")}
         ${renderCardResumoCons("Empréstimo", formatarMoeda(totalEmprestimo), "tipo-atencao")}
-        ${renderCardResumoCons("Vale (mês vigente)", formatarMoeda(totalVale), "tipo-atencao")}
+        ${renderCardResumoCons(rotuloVale, formatarMoeda(totalVale), "tipo-atencao")}
         ${renderCardResumoCons("Sobra", formatarMoeda(sobra), sobra < 0 ? "tipo-atencao" : "tipo-frota")}
       `;
 
@@ -358,11 +366,17 @@
     const digitosTelefone = String(telefone).replace(/\D/g, "");
     const telefoneValido = digitosTelefone.length >= 10;
 
+    const MESES_MSG_REF = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+    const refSalario = typeof window.obterMesReferenciaSalario === "function"
+      ? window.obterMesReferenciaSalario()
+      : null;
+    const rotuloMesMsg = refSalario ? `de ${MESES_MSG_REF[refSalario.mes - 1]}` : "deste mês";
+
     const primeiroNome = (funcionarioNome || "").trim().split(" ")[0] || "";
-    let mensagem = `Olá ${primeiroNome}, segue o resumo do seu salário deste mês:\n\n`;
+    let mensagem = `Olá ${primeiroNome}, segue o resumo do seu salário ${rotuloMesMsg}:\n\n`;
     mensagem += `Salário: ${formatarMoeda(salario)}\n`;
     if (totalEmprestimo > 0) mensagem += `Desconto de empréstimo: ${formatarMoeda(totalEmprestimo)}\n`;
-    if (totalVale > 0) mensagem += `Vale retirado no mês: ${formatarMoeda(totalVale)}\n`;
+    if (totalVale > 0) mensagem += `Vale retirado ${rotuloMesMsg}: ${formatarMoeda(totalVale)}\n`;
     mensagem += `\nValor líquido: ${formatarMoeda(sobra)}`;
 
     // Busca o holerite pra mostrar junto — prioriza o do mês vigente,
@@ -380,9 +394,11 @@
       const itens = [];
       snap.forEach((d) => itens.push({ id: d.id, ...d.data() }));
       itens.sort((a, b) => b.id.localeCompare(a.id));
-      const hoje = new Date();
-      const idMesVigente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-      holeriteEncontrado = itens.find((i) => i.id === idMesVigente) || itens[0] || null;
+      const refHolerite = typeof window.obterMesReferenciaSalario === "function"
+        ? window.obterMesReferenciaSalario()
+        : null;
+      const idMesReferencia = refHolerite ? `${refHolerite.ano}-${String(refHolerite.mes).padStart(2, "0")}` : null;
+      holeriteEncontrado = (idMesReferencia && itens.find((i) => i.id === idMesReferencia)) || itens[0] || null;
     } catch (erro) {
       console.error("Erro ao buscar holerite pra prévia do WhatsApp:", erro);
     }
