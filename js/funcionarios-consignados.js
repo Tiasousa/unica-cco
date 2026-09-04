@@ -351,7 +351,7 @@
     }
   }
 
-  function abrirPreviaMensagemSalario() {
+  async function abrirPreviaMensagemSalario() {
     if (!dadosFinanceirosAtuais) return;
     const { salario, totalEmprestimo, totalVale, sobra, telefone } = dadosFinanceirosAtuais;
 
@@ -364,6 +364,28 @@
     if (totalEmprestimo > 0) mensagem += `Desconto de empréstimo: ${formatarMoeda(totalEmprestimo)}\n`;
     if (totalVale > 0) mensagem += `Vale retirado no mês: ${formatarMoeda(totalVale)}\n`;
     mensagem += `\nValor líquido: ${formatarMoeda(sobra)}`;
+
+    // Busca o holerite pra mostrar junto — prioriza o do mês vigente,
+    // cai pro mais recente disponível se não tiver o desse mês ainda.
+    const MESES_WHATS = [
+      "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+      "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+    ];
+    let holeriteEncontrado = null;
+    try {
+      const { collection, getDocs } = window.fs;
+      const snap = await getDocs(
+        collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "holerites")
+      );
+      const itens = [];
+      snap.forEach((d) => itens.push({ id: d.id, ...d.data() }));
+      itens.sort((a, b) => b.id.localeCompare(a.id));
+      const hoje = new Date();
+      const idMesVigente = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
+      holeriteEncontrado = itens.find((i) => i.id === idMesVigente) || itens[0] || null;
+    } catch (erro) {
+      console.error("Erro ao buscar holerite pra prévia do WhatsApp:", erro);
+    }
 
     const modalHtml = `
       <div class="modal-overlay" id="modalWhatsPrevia">
@@ -380,6 +402,16 @@
           <div class="campo">
             <label>Mensagem (pode editar antes de enviar)</label>
             <textarea id="whatsMensagemEditavel" rows="7" style="width:100%; background:#141414; border:1px solid #2E2E2E; border-radius:8px; padding:10px; color:var(--branco); font-size:13.5px; font-family:inherit;">${mensagem}</textarea>
+          </div>
+          <div class="campo">
+            <label>Holerite</label>
+            ${holeriteEncontrado
+              ? `<div class="linha-holerite-whats">
+                  <span>${MESES_WHATS[(holeriteEncontrado.mes || 1) - 1]} de ${holeriteEncontrado.ano}</span>
+                  <a href="${holeriteEncontrado.url}" target="_blank" rel="noopener" class="btn-secundario" id="btnAbrirHoleriteWhats">Abrir holerite</a>
+                </div>
+                <p class="doc-data" style="margin-top:6px;">O WhatsApp não deixa anexar arquivo pelo link automaticamente — abre o holerite aqui, e depois anexa ele manualmente dentro da conversa (é só um clique a mais, no ícone de clipe do WhatsApp).</p>`
+              : `<p class="doc-vazio">Nenhum holerite cadastrado pra esse funcionário ainda. Sobe em "Documentos" antes, se quiser mandar junto.</p>`}
           </div>
           <div class="modal-acoes">
             <button type="button" class="btn-secundario" id="btnCancelarWhatsPrevia">Cancelar</button>
