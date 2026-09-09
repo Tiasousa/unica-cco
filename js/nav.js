@@ -36,6 +36,12 @@ const PAGINAS_CONFIG = {
     grupo: "operacao",
   },
 
+  viagens: {
+    titulo: "Apontamento de Viagens",
+    subtitulo: "Viagens de caminhões por obra e material",
+    grupo: "operacao",
+  },
+
 
   /* Frota */
   "frota-visao-geral": {
@@ -451,6 +457,9 @@ async function renderizarPagina(pagina) {
 
     case "apontamento":
       return executarModulo("renderApontamento");
+
+    case "viagens":
+      return executarModulo("renderViagens");
 
     case "frota-visao-geral":
       return executarModulo("renderFrotaVisaoGeral");
