@@ -355,6 +355,7 @@ function abrirDetalhesApontamento(id) {
           `).join("")}
         </div>
         <div class="modal-acoes">
+          <button type="button" class="btn-primario" id="btnEditarApont">Editar apontamento</button>
           ${registro.status === "cancelado"
             ? `<span class="badge parada">Este apontamento foi cancelado</span>`
             : `<button type="button" class="btn-secundario" id="btnCancelarApont" style="color:var(--perigo);">Cancelar apontamento</button>`}
@@ -368,6 +369,10 @@ function abrirDetalhesApontamento(id) {
   document.getElementById("btnFecharDetalheApont")?.addEventListener("click", fecharModalApont);
   document.getElementById("btnFecharDetalheApont2")?.addEventListener("click", fecharModalApont);
   document.getElementById("btnCancelarApont")?.addEventListener("click", () => cancelarApontamento(id));
+  document.getElementById("btnEditarApont")?.addEventListener("click", () => {
+    fecharModalApont();
+    window.editarApontamentoSalvo("diario", id, renderApontamento);
+  });
 }
 
 function fecharModalApont() {
@@ -816,3 +821,169 @@ function renderSucessoNovoApont(registro) {
 
   document.getElementById("btnVoltarHistoricoApont")?.addEventListener("click", renderApontamento);
 }
+
+
+/* Edição administrativa dos registros existentes; não altera cadastros da frota. */
+(() => {
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const assinatura = (v) => JSON.stringify(v, function (k, x) {
+    return x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.keys(x).sort().map((p) => [p, x[p]])) : x;
+  });
+  const lista = (snap) => { const r = []; snap.forEach((d) => r.push({ ...d.data(), id: d.id })); return r; };
+  const dataValida = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v + "T12:00:00Z")) && new Date(v + "T12:00:00Z").toISOString().slice(0, 10) === v;
+
+  window.editarApontamentoSalvo = async function (tipo, id, aoSalvar) {
+    if (document.getElementById("editorApontamento")) return;
+    const modal = document.createElement("div");
+    modal.id = "editorApontamento";
+    modal.className = "modal-overlay";
+    modal.innerHTML = `<div class="modal-cadastro" role="dialog" aria-modal="true" aria-label="Editar apontamento" style="max-width:1000px;width:calc(100% - 24px);max-height:90vh;overflow-y:auto"><div class="modal-cabecalho"><h3>Editar ${tipo === "diario" ? "Apontamento Diário" : "Viagens"}</h3><button type="button" class="btn-fechar-modal" id="editFechar" aria-label="Fechar">×</button></div><div id="editCorpo">Carregando registro...</div></div>`;
+    document.body.appendChild(modal);
+    const el = (id) => modal.querySelector(`#${id}`);
+    let salvando = false;
+    const fechar = () => { if (!salvando) modal.remove(); };
+    el("editFechar").onclick = fechar;
+    let original, obras, equips, materiais, usuario, perfil;
+    const { doc, getDoc, getDocs, collection, serverTimestamp, runTransaction } = window.fs || {};
+    const colecao = tipo === "diario" ? "apontamentos" : "apontamentos_viagens";
+    let ref;
+    try {
+      usuario = window.firebaseAuth?.currentUser;
+      if (!usuario || !runTransaction) throw new Error("Entre novamente e confira se o arquivo auth.js foi atualizado.");
+      const snapPerfil = await getDoc(doc(window.firebaseDb, "usuarios", usuario.uid));
+      perfil = snapPerfil.exists() ? snapPerfil.data() : {};
+      if (perfil.papel !== "admin" || perfil.ativo === false) throw new Error("A edição completa está disponível para administradores ativos.");
+      ref = doc(window.firebaseDb, colecao, id);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) throw new Error("Este registro não existe mais.");
+      original = snap.data();
+      const snaps = await Promise.all(["obras", "maquinas", "caminhoes", "cadastros_materiais_viagens"].filter((nome) => tipo === "viagens" || nome !== "cadastros_materiais_viagens").map((nome) => getDocs(collection(window.firebaseDb, nome))));
+      obras = lista(snaps[0]);
+      if (!obras.some((o) => o.id === original.obraId)) obras.push({ id: original.obraId || "", nome: original.obraNome || "Obra original" });
+      equips = [[snaps[1], "maquinas"], [snaps[2], "caminhoes"]].flatMap(([s, col]) => lista(s).map((e) => ({ id: e.id, chave: `${col}:${e.id}`, colecao: col, nome: e.nome || "Sem nome", identificacao: e.placa || e.identificador || "", tipo: col === "maquinas" ? "maquina" : "caminhao", tipoRotulo: col === "maquinas" ? "Máquina" : "Caminhão" })));
+      if (tipo === "viagens") {
+        const chave = `caminhoes:${original.caminhaoId}`;
+        if (!equips.some((e) => e.chave === chave)) equips.push({ id: original.caminhaoId, chave, colecao: "caminhoes", nome: original.caminhaoNome || "Caminhão original", identificacao: original.placa || "", tipo: "caminhao", tipoRotulo: "Caminhão" });
+        materiais = ["Terra", "Cascalho", "Entulho", "Massa asfáltica", "Brita"].map((nome, i) => ({ id: `padrao-${i}`, nome }));
+        materiais.push(...lista(snaps[3]).filter((c) => !materiais.some((m) => m.id === c.id)));
+        if (!materiais.some((m) => m.id === original.materialId)) materiais.push({ id: original.materialId || "", nome: original.materialNome || "Material original" });
+      } else {
+        (original.itens || []).forEach((i) => {
+          const col = i.colecaoEquipamento || (i.tipoItem === "caminhao" ? "caminhoes" : "maquinas");
+          const chave = `${col}:${i.equipamentoId}`;
+          if (!equips.some((e) => e.chave === chave)) equips.push({ id: i.equipamentoId, chave, colecao: col, nome: i.equipamentoNome || "Equipamento original", identificacao: i.identificacao || "", tipo: i.tipoItem || (col === "maquinas" ? "maquina" : "caminhao"), tipoRotulo: i.tipoRotulo || "Equipamento" });
+        });
+      }
+    } catch (e) {
+      if (modal.isConnected) el("editCorpo").textContent = e.message || "Não foi possível carregar a edição.";
+      return;
+    }
+    if (!modal.isConnected) return;
+    const opcoes = (itens, valor, nome) => itens.map((i) => `<option value="${esc(valor(i))}">${esc(nome(i))}</option>`).join("");
+    const campo = (id, rotulo, valor, type = "text") => `<div class="campo"><label for="${id}">${rotulo}</label><input id="${id}" type="${type}" value="${esc(valor)}"></div>`;
+    el("editCorpo").innerHTML = `<form id="editForm"><fieldset id="editCampos" style="border:0;padding:0;min-width:0">
+      <div class="abast-dados-gerais">${campo("editData", "Data *", original.data, "date")}<div class="campo"><label for="editObra">Obra *</label><select id="editObra">${opcoes(obras, (o) => o.id, (o) => o.nome)}</select></div>${campo("editResponsavel", "Responsável pelo lançamento *", original.responsavel || "")}</div>
+      ${tipo === "viagens" ? `<div class="abast-dados-gerais"><div class="campo"><label for="editCaminhao">Caminhão *</label><select id="editCaminhao">${opcoes(equips.filter((e) => e.colecao === "caminhoes"), (e) => e.chave, (e) => `${e.nome} · ${e.identificacao}`)}</select></div><div class="campo"><label for="editMaterial">Material *</label><select id="editMaterial">${opcoes(materiais, (m) => m.id, (m) => m.nome)}</select></div>${campo("editQuantidade", "Quantidade de viagens *", original.quantidadeViagens, "number")}</div><div class="campo"><label for="editObservacao">Observação</label><textarea id="editObservacao" rows="3">${esc(original.observacao || "")}</textarea></div>` : '<div id="editItens"></div><button type="button" class="btn-secundario" id="editAdicionar">+ Adicionar equipamento</button>'}
+      </fieldset><p class="abast-erro" id="editErro" role="alert"></p><div class="modal-acoes"><button type="button" class="btn-secundario" id="editVoltar">Voltar sem salvar</button><button type="submit" class="btn-primario" id="editSalvar">Salvar alterações</button></div></form>`;
+    el("editObra").value = original.obraId || "";
+    el("editData").required = true;
+    el("editResponsavel").required = true;
+    el("editResponsavel").maxLength = 150;
+    el("editVoltar").onclick = fechar;
+    let contador = 0;
+    const fontes = new Map();
+    function adicionar(item = {}) {
+      const n = contador++;
+      fontes.set(String(n), item);
+      const div = document.createElement("div");
+      div.className = "abast-item-lancamento";
+      div.dataset.editItem = String(n);
+      const col = item.colecaoEquipamento || (item.tipoItem === "caminhao" ? "caminhoes" : "maquinas");
+      div.innerHTML = `<div class="abast-dados-gerais"><div class="campo"><label for="editEquip${n}">Equipamento *</label><select id="editEquip${n}" data-edit="equipamento" required><option value="">Selecione</option>${opcoes(equips, (e) => e.chave, (e) => `${e.tipoRotulo} · ${e.nome} · ${e.identificacao}`)}</select></div><div class="campo"><label for="editPercent${n}">Percentual trabalhado</label><select id="editPercent${n}" data-edit="percentual"><option value="">Não informado</option>${[0, 25, 50, 75, 100].map((v) => `<option value="${v}">${v}%</option>`).join("")}</select></div><div class="campo"><label for="editOperador${n}">Operador / motorista</label><input id="editOperador${n}" data-edit="operador" value="${esc(item.operadorNome || "")}"></div></div><div class="campo"><label for="editOcorrencia${n}">Observação</label><textarea id="editOcorrencia${n}" data-edit="ocorrencia" rows="2">${esc(item.ocorrencia || "")}</textarea></div><button type="button" class="btn-secundario" data-remover>Remover equipamento deste apontamento</button>`;
+      div.querySelector('[data-edit="equipamento"]').value = item.equipamentoId ? `${col}:${item.equipamentoId}` : "";
+      div.querySelector('[data-edit="percentual"]').value = item.percentualTrabalhado ?? "";
+      div.querySelector('[data-remover]').onclick = () => div.remove();
+      el("editItens").appendChild(div);
+    }
+    if (tipo === "diario") {
+      (original.itens || []).forEach(adicionar);
+      el("editAdicionar").onclick = () => adicionar();
+    } else {
+      el("editCaminhao").value = `caminhoes:${original.caminhaoId}`;
+      el("editMaterial").value = original.materialId || "";
+      el("editQuantidade").min = "0";
+      el("editQuantidade").step = "1";
+      el("editQuantidade").required = true;
+    }
+    el("editForm").onsubmit = async (evento) => {
+      evento.preventDefault();
+      if (salvando) return;
+      el("editErro").textContent = "";
+      let patch;
+      try {
+        const obra = obras.find((o) => String(o.id) === el("editObra").value);
+        const responsavel = el("editResponsavel").value.trim(), data = el("editData").value;
+        if (!obra || !responsavel || !dataValida(data)) throw new Error("Informe data, obra e responsável.");
+        patch = { obraId: obra.id, obraNome: obra.id === original.obraId ? (original.obraNome || obra.nome) : obra.nome, data, responsavel };
+        if (tipo === "viagens") {
+          const eq = equips.find((e) => e.chave === el("editCaminhao").value);
+          const material = materiais.find((m) => String(m.id) === el("editMaterial").value);
+          const quantidadeViagens = Number(el("editQuantidade").value);
+          if (!eq || !material || el("editQuantidade").value === "" || !Number.isSafeInteger(quantidadeViagens) || quantidadeViagens < 0) throw new Error("Selecione caminhão, material e uma quantidade inteira de viagens igual ou maior que zero.");
+          Object.assign(patch, { caminhaoId: eq.id, caminhaoNome: eq.nome, placa: eq.identificacao, materialId: material.id, materialNome: material.nome, quantidadeViagens, observacao: el("editObservacao").value.trim() });
+          if (eq.id === original.caminhaoId) { patch.caminhaoNome = original.caminhaoNome || eq.nome; patch.placa = original.placa ?? eq.identificacao; }
+          if (material.id === original.materialId) patch.materialNome = original.materialNome || material.nome;
+        } else {
+          const itens = [...modal.querySelectorAll("[data-edit-item]")].map((div) => {
+            const antes = fontes.get(div.dataset.editItem);
+            const eq = equips.find((e) => e.chave === div.querySelector('[data-edit="equipamento"]').value);
+            const percentual = div.querySelector('[data-edit="percentual"]').value;
+            if (!eq) throw new Error("Selecione o equipamento em todas as linhas.");
+            if (!percentual && antes.percentualTrabalhado !== null && antes.percentualTrabalhado !== undefined) throw new Error("Selecione o percentual trabalhado.");
+            if (!percentual && !antes.equipamentoId) throw new Error("Selecione o percentual do equipamento adicionado.");
+            const item = { ...antes, equipamentoId: eq.id, colecaoEquipamento: eq.colecao, equipamentoNome: eq.nome, identificacao: eq.identificacao, tipoItem: eq.tipo, tipoRotulo: eq.tipoRotulo, ocorrencia: div.querySelector('[data-edit="ocorrencia"]').value.trim() || null };
+            if (eq.id === antes.equipamentoId && eq.colecao === antes.colecaoEquipamento) {
+              item.equipamentoNome = antes.equipamentoNome || eq.nome;
+              item.identificacao = antes.identificacao ?? eq.identificacao;
+            }
+            if (percentual !== "") item.percentualTrabalhado = Number(percentual);
+            const operador = div.querySelector('[data-edit="operador"]').value.trim();
+            if (operador !== (antes.operadorNome || "")) { item.operadorNome = operador || null; item.operadorId = null; }
+            if (eq.id !== antes.equipamentoId || eq.colecao !== antes.colecaoEquipamento) {
+              item.campoMedidor = eq.colecao === "maquinas" ? "horimetroAtual" : "kmAtual";
+              item.medidorRotulo = eq.colecao === "maquinas" ? "Horímetro" : "Quilometragem";
+              item.unidade = eq.colecao === "maquinas" ? "h" : "km";
+            }
+            return item;
+          });
+          if (!itens.length) throw new Error("Mantenha pelo menos um equipamento no apontamento.");
+          Object.assign(patch, { itens, quantidadeItens: itens.length });
+        }
+      } catch (e) { el("editErro").textContent = e.message; return; }
+      salvando = true;
+      el("editCampos").disabled = true;
+      el("editSalvar").disabled = true;
+      el("editSalvar").textContent = "Salvando...";
+      try {
+        await runTransaction(window.firebaseDb, async (tx) => {
+          const snapPerfil = await tx.get(doc(window.firebaseDb, "usuarios", usuario.uid));
+          if (window.firebaseAuth?.currentUser?.uid !== usuario.uid || !snapPerfil.exists() || snapPerfil.data().papel !== "admin" || snapPerfil.data().ativo === false) throw new Error("Sua permissão de administrador não está disponível. Entre novamente.");
+          const atual = await tx.get(ref);
+          if (!atual.exists()) throw new Error("Este registro foi removido. Feche a edição e atualize o histórico.");
+          if (assinatura(atual.data()) !== assinatura(original)) throw new Error("Este registro mudou enquanto você editava. Feche e abra a edição novamente para conferir a versão atual.");
+          tx.update(ref, { ...patch, atualizadoEm: serverTimestamp(), editadoPorUid: usuario.uid, editadoPor: snapPerfil.data().nome || usuario.email || usuario.uid });
+        });
+      } catch (e) {
+        console.error("Erro ao editar apontamento:", e);
+        el("editErro").textContent = e.code ? "Não foi possível salvar. Confira a conexão e as permissões. Seus dados continuam no formulário." : e.message;
+        salvando = false;
+        el("editCampos").disabled = false;
+        el("editSalvar").disabled = false;
+        el("editSalvar").textContent = "Salvar alterações";
+        return;
+      }
+      modal.remove();
+      await aoSalvar?.();
+    };
+  };
+})();
