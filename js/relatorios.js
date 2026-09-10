@@ -209,17 +209,18 @@
         ${items.length ? `<section class="rel-painel"><h3>Resumo por ${tipo === "diario" ? "equipamento" : "caminhão"}</h3><div class="rel-acoes"><button type="button" class="btn-secundario" id="relImprimirResumo">Imprimir resumo / PDF</button></div>${tabela}</section><section class="rel-painel" id="relIndividual"></section>` : '<div class="cadastro-vazio">Nenhum registro encontrado com estes filtros.</div>'}`;
       if (!items.length) return;
       el("relImprimirResumo").onclick = () => imprimir(tipo === "diario" ? "Resumo de Apontamento Diário" : "Resumo de Viagens", `<p>Total: ${numero(r.total)} ${tipo === "diario" ? "diárias equivalentes" : "viagens"}</p>${avisos(items)}${tabela}`);
-      if (!grupos.has(selecao)) selecao = ordenados[0][0];
+      selecao = el("relEquipamento").value;
       function individual() {
-        const grupo = grupos.get(selecao), e = grupo[0];
-        const titulo = `${tipo === "diario" ? "Apontamento Diário" : "Viagens"} — ${e.nome} · ${e.identificacao || e.tipo}`;
+        const grupo = selecao ? grupos.get(selecao) : items, e = grupo[0];
+        const titulo = `${tipo === "diario" ? "Apontamento Diário" : "Viagens"} — ${selecao ? `${e.nome} · ${e.identificacao || e.tipo}` : "Todos os equipamentos selecionados"}`;
         const html = detalheHTML(grupo);
-        el("relIndividual").innerHTML = `<h3>Relatório individual · ${esc(e.nome)}</h3><span class="rel-sub">${esc(e.tipo)} · ${esc(e.identificacao || "Sem identificação")}</span><div class="rel-acoes"><button type="button" class="btn-primario" id="relImprimirIndividual">Imprimir individual / PDF</button></div>${html}`;
+        el("relIndividual").innerHTML = `<h3>${selecao ? `Relatório individual · ${esc(e.nome)}` : "Relatório detalhado · Todos os equipamentos"}</h3><span class="rel-sub">${selecao ? `${esc(e.tipo)} · ${esc(e.identificacao || "Sem identificação")}` : `${grupos.size} equipamento(s) · Todos os lançamentos dos filtros acima`}</span><div class="rel-acoes"><button type="button" class="btn-primario" id="relImprimirIndividual">${selecao ? "Imprimir individual / PDF" : "Imprimir todos / PDF"}</button>${selecao ? '<button type="button" class="btn-secundario" id="relVerTodos">Ver todos os equipamentos</button>' : ""}</div>${html}`;
         el("relImprimirIndividual").onclick = () => imprimir(titulo, html);
+        if (el("relVerTodos")) el("relVerTodos").onclick = () => { el("relEquipamento").value = ""; mostrar(); };
         raiz.querySelectorAll("[data-grupo-rel]").forEach((tr) => tr.classList.toggle("rel-selecionado", tr.dataset.grupoRel === selecao));
         raiz.querySelectorAll("[data-individual-rel]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.individualRel === selecao)));
       }
-      raiz.querySelectorAll("[data-individual-rel]").forEach((b) => b.onclick = () => { selecao = b.dataset.individualRel; individual(); el("relIndividual").scrollIntoView({ block: "start", behavior: "auto" }); });
+      raiz.querySelectorAll("[data-individual-rel]").forEach((b) => b.onclick = () => { el("relEquipamento").value = b.dataset.individualRel; mostrar(); el("relIndividual").scrollIntoView({ block: "start", behavior: "auto" }); });
       individual();
     }
 
