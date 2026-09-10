@@ -86,29 +86,14 @@
       <div class="abast-cabecalho-interno"><div><span class="abast-eyebrow">Relatórios</span><h2>Apontamentos e viagens</h2><p>Consulte os registros por período, obra e equipamento.</p></div></div>
       <div class="rel-acoes" aria-label="Tipo de relatório"><button type="button" class="btn-primario" id="relDiario" aria-pressed="true">Apontamento Diário</button><button type="button" class="btn-secundario" id="relViagens" aria-pressed="false">Apontamento de Viagens</button></div>
       <form id="relForm"><div class="rel-filtros">
-        <div class="campo"><label for="relPeriodo">Consultar por</label><select id="relPeriodo"><option value="mes">Mês</option><option value="dia">Data exata</option><option value="periodo">Período</option></select></div>
-        <div class="campo" id="relMesWrap"><label for="relMes">Mês</label><input type="month" id="relMes" value="${mesAtual}" required></div>
-        <div class="campo" id="relDiaWrap" hidden><label for="relDia">Data exata</label><input type="date" id="relDia" value="${mesAtual}-${String(agora.getDate()).padStart(2, "0")}" disabled></div>
-        <div class="campo" id="relInicioWrap" hidden><label for="relInicio">Data inicial</label><input type="date" id="relInicio" value="${mesAtual}-01" disabled></div>
-        <div class="campo" id="relFimWrap" hidden><label for="relFim">Data final</label><input type="date" id="relFim" value="${mesAtual}-${String(agora.getDate()).padStart(2, "0")}" disabled></div>
+        <div class="campo" id="relInicioWrap"><label for="relInicio">Data inicial</label><input type="date" id="relInicio" value="${mesAtual}-01" required></div>
+        <div class="campo" id="relFimWrap"><label for="relFim">Data final</label><input type="date" id="relFim" value="${mesAtual}-${String(agora.getDate()).padStart(2, "0")}" required></div>
         <div class="campo"><label for="relObra">Obra</label><select id="relObra"><option value="">Todas as obras</option></select></div>
         <div class="campo"><label for="relEquipamento">Máquina ou caminhão</label><select id="relEquipamento"><option value="">Todos os equipamentos</option></select></div>
-      </div><div class="rel-acoes"><button type="submit" class="btn-primario" id="relConsultar">Consultar / atualizar</button></div></form>
+      </div><p class="rel-nota">O intervalo inclui a data inicial e a final. Para consultar um único dia, informe a mesma data nos dois campos.</p><div class="rel-acoes"><button type="submit" class="btn-primario" id="relConsultar">Consultar / atualizar</button></div></form>
       <p class="abast-erro" id="relErro" role="alert"></p><div id="relResultados" aria-live="polite"></div>`;
 
     function datas() {
-      if (el("relPeriodo").value === "dia") {
-        const dia = el("relDia").value;
-        if (!dataValida(dia)) throw new Error("Selecione uma data válida.");
-        return { inicio: dia, fim: dia };
-      }
-      if (el("relPeriodo").value === "mes") {
-        const mes = el("relMes").value;
-        if (!/^\d{4}-\d{2}$/.test(mes) || !dataValida(mes + "-01")) throw new Error("Selecione um mês válido.");
-        const [ano, m] = mes.split("-").map(Number);
-        const ultimo = new Date(Date.UTC(ano, m, 0)).getUTCDate();
-        return { inicio: mes + "-01", fim: `${mes}-${ultimo}` };
-      }
       const inicio = el("relInicio").value, fim = el("relFim").value;
       if (!dataValida(inicio) || !dataValida(fim) || inicio > fim) throw new Error("Informe as datas inicial e final em ordem válida.");
       return { inicio, fim };
@@ -213,13 +198,13 @@
       items.forEach((r) => { if (!grupos.has(r.chave)) grupos.set(r.chave, []); grupos.get(r.chave).push(r); });
       const ordenados = [...grupos].sort((a, b) => a[1][0].nome.localeCompare(b[1][0].nome, "pt-BR"));
       const r = resumo(items, tipo);
-      const cabecalhoTabela = `<tr><th>Equipamento</th>${tipo === "diario" ? categorias.map((c) => `<th>${c}%</th>`).join("") + "<th>Diárias equiv.</th>" : "<th>Viagens</th>"}<th>Dias com registro</th></tr>`;
+      const cabecalhoTabela = `<tr><th>Equipamento</th>${tipo === "diario" ? categorias.map((c) => `<th>${c}%<span class="rel-sub">Lançamentos</span></th>`).join("") + "<th>Diárias equiv.</th>" : "<th>Viagens</th>"}<th>Dias com registro</th></tr>`;
       const linhasTabela = ordenados.map(([chave, grupo]) => {
         const total = resumo(grupo, tipo), e = grupo[0];
         return `<tr data-grupo-rel="${esc(chave)}"><td class="rel-nome">${esc(e.nome)}<span class="rel-sub">${esc(e.tipo)} · ${esc(e.identificacao || "Sem identificação")}</span><button type="button" class="btn-secundario" data-individual-rel="${esc(chave)}" style="margin-top:8px">Ver individual</button></td>${tipo === "diario" ? categorias.map((c) => `<td>${total.contagens[c]}</td>`).join("") : ""}<td>${numero(total.total)}</td><td>${total.dias}</td></tr>`;
       }).join("");
       const tabela = `<div class="rel-tabela-wrap"><table><thead>${cabecalhoTabela}</thead><tbody>${linhasTabela}</tbody></table></div>`;
-      el("relResultados").innerHTML = `<p class="rel-nota">${esc(descricao())}</p><div class="rel-metricas"><div class="rel-metrica"><span>${tipo === "diario" ? "Diárias equivalentes" : "Total de viagens"}</span><strong>${numero(r.total)}</strong></div><div class="rel-metrica"><span>Lançamentos por equipamento</span><strong>${items.length}</strong></div><div class="rel-metrica"><span>${tipo === "diario" ? "Equipamentos com registro" : "Caminhões com registro"}</span><strong>${grupos.size}</strong></div></div>
+      el("relResultados").innerHTML = `<p class="rel-nota">${esc(descricao())}</p><div class="rel-metricas"><div class="rel-metrica"><span>${tipo === "diario" ? "Diárias equivalentes" : "Total de viagens"}</span><strong>${numero(r.total)}</strong></div><div class="rel-metrica"><span>Total de lançamentos</span><strong>${items.length}</strong></div><div class="rel-metrica"><span>${tipo === "diario" ? "Equipamentos com registro" : "Caminhões com registro"}</span><strong>${grupos.size}</strong></div></div>
         <p class="rel-nota">${observacaoBase}</p>${tipo === "diario" ? '<p class="rel-nota">Diárias equivalentes = soma dos percentuais ÷ 100. Exemplo: 25% + 75% = 1 diária equivalente. Cada coluna percentual conta lançamentos, e não dias de calendário.</p>' : ""}${avisos(items)}
         ${items.length ? `<section class="rel-painel"><h3>Resumo por ${tipo === "diario" ? "equipamento" : "caminhão"}</h3><div class="rel-acoes"><button type="button" class="btn-secundario" id="relImprimirResumo">Imprimir resumo / PDF</button></div>${tabela}</section><section class="rel-painel" id="relIndividual"></section>` : '<div class="cadastro-vazio">Nenhum registro encontrado com estes filtros.</div>'}`;
       if (!items.length) return;
@@ -239,17 +224,7 @@
     }
 
     el("relForm").onsubmit = (e) => { e.preventDefault(); carregar(); };
-    el("relPeriodo").onchange = () => {
-      const modo = el("relPeriodo").value;
-      [["relMes", "mes"], ["relDia", "dia"], ["relInicio", "periodo"], ["relFim", "periodo"]].forEach(([id, quando]) => {
-        const ativo = modo === quando;
-        el(id + "Wrap").hidden = !ativo;
-        el(id).disabled = !ativo;
-        el(id).required = ativo;
-      });
-      invalidar();
-    };
-    ["relMes", "relDia", "relInicio", "relFim"].forEach((id) => el(id).onchange = invalidar);
+    ["relInicio", "relFim"].forEach((id) => el(id).onchange = invalidar);
     ["relObra", "relEquipamento"].forEach((id) => el(id).onchange = () => { selecao = ""; mostrar(); });
     [["relDiario", "diario"], ["relViagens", "viagens"]].forEach(([id, modo]) => el(id).onclick = () => {
       if (modo === tipo) return;
