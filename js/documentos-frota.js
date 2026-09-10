@@ -291,7 +291,7 @@ function abrirModalDocFrota(colecao, id, tipoId) {
           <div class="campo">
             <label>Anexo (foto ou PDF)</label>
             ${doc?.url
-              ? `<p class="doc-data" style="margin-bottom:8px;">Arquivo atual: <a href="${doc.url}" target="_blank" rel="noopener">Ver anexo</a> ${doc.enviadoEm ? "· enviado em " + (doc.enviadoEm.toDate ? doc.enviadoEm.toDate().toLocaleDateString("pt-BR") : "") : ""}</p>`
+              ? `<p class="doc-data" style="margin-bottom:12px;">Arquivo atual: <a href="${doc.url}" target="_blank" rel="noopener" class="btn-primario" style="display:inline-flex;align-items:center;justify-content:center;margin-left:6px;padding:8px 14px;text-decoration:none;">Ver anexo</a> ${doc.enviadoEm ? "· enviado em " + (doc.enviadoEm.toDate ? doc.enviadoEm.toDate().toLocaleDateString("pt-BR") : "") : ""}</p>`
               : ""}
             <input type="file" id="docFrotaArquivo" accept="image/*,.pdf">
           </div>
