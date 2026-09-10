@@ -67,7 +67,11 @@
           <p class="card-obra-info">${escapar(r.caminhaoNome)} · ${escapar(r.placa || "Sem placa")}</p>
           ${r.observacao ? `<p class="card-obra-info" style="overflow-wrap:anywhere;white-space:pre-wrap">${escapar(r.observacao)}</p>` : ""}
           <div class="card-obra-rodape"><span>${escapar(r.responsavel || "—")}</span></div>
+          <button type="button" class="btn-secundario" data-editar-viagem="${escapar(r.id)}" style="margin-top:12px">Editar apontamento</button>
         </div>`).join("")}</div>` : '<div class="cadastro-vazio">Nenhum apontamento de viagens encontrado.</div>';
+      el("viagensLista").querySelectorAll("[data-editar-viagem]").forEach((b) => {
+        b.onclick = () => window.editarApontamentoSalvo("viagens", b.dataset.editarViagem, window.renderViagens);
+      });
     }
 
     function formulario() {
