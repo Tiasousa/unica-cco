@@ -35,7 +35,6 @@ const PAGINAS_CONFIG = {
     subtitulo: "Registro diário das atividades operacionais",
     grupo: "operacao",
   },
-
   viagens: {
     titulo: "Apontamento de Viagens",
     subtitulo: "Viagens de caminhões por obra e material",
@@ -112,7 +111,7 @@ const PAGINAS_CONFIG = {
 
   relatorios: {
     titulo: "Relatórios",
-    subtitulo: "Indicadores e análises operacionais",
+    subtitulo: "Apontamentos e viagens por período, obra e equipamento",
     grupo: null,
   },
 
@@ -212,7 +211,6 @@ const ETAPA_MODULO = {
   "documentos-frota": "Etapa 5 — Documentos da Frota",
 
   materiais: "Etapa 7 — Materiais",
-  relatorios: "Etapa final — Relatórios e indicadores",
   configuracoes: "Etapa 2 — Login, usuários e acessos",
 };
 
@@ -457,7 +455,6 @@ async function renderizarPagina(pagina) {
 
     case "apontamento":
       return executarModulo("renderApontamento");
-
     case "viagens":
       return executarModulo("renderViagens");
 
@@ -497,8 +494,10 @@ async function renderizarPagina(pagina) {
       return executarModulo("renderChecklists");
 
 
-    /* Módulos preparados para desenvolvimento */
     case "relatorios":
+      return executarModulo("renderRelatorios");
+
+    /* Módulos preparados para desenvolvimento */
     case "configuracoes":
       return renderPlaceholder(pagina);
 
