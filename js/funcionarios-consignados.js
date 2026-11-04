@@ -19,7 +19,7 @@
   let funcionarioId = null;
   let funcionarioNome = "";
   let editandoId = null; // null = criando novo; senão, id do consignado em edição
-  let dadosFinanceirosAtuais = null; // { salario, totalEmprestimo, totalVale, totalDecimo, parcelasDecimo, sobra, telefone }
+  let dadosFinanceirosAtuais = null; // { salario, totalEmprestimo, totalVale, sobra, telefone }
 
   function escaparHtmlCons(texto) {
     const div = document.createElement("div");
@@ -58,25 +58,12 @@
     return { mesInicio: mes, anoInicio: ano };
   }
 
-  const ROTULO_PARCELA_DECIMO = { "1": "1ª parcela", "2": "2ª parcela", "unica": "Parcela única" };
-
-  function mesPagamentoAtualISO() {
-    const hoje = new Date();
-    return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
-  }
-
-  function formatarMesPagamento(anoMes) {
-    const [ano, mes] = String(anoMes || "").split("-");
-    if (!ano || !mes) return "—";
-    return `${MESES[Number(mes) - 1] || "?"} de ${ano}`;
-  }
-
   window.abrirConsignadosFuncionario = async function (id, nome) {
     funcionarioId = id;
     funcionarioNome = nome || "";
     editandoId = null;
     renderModalConsignados();
-    await Promise.all([carregarConsignados(), carregarDecimoTerceiro(), atualizarResumoFinanceiroFunc()]);
+    await Promise.all([carregarConsignados(), atualizarResumoFinanceiroFunc()]);
   };
 
   function renderModalConsignados() {
@@ -125,33 +112,6 @@
             Enviar salário por WhatsApp
           </button>
 
-          <h4 class="doc-subtitulo">13º salário</h4>
-          <form id="formDecimo" class="form-consignado form-consignado-linha">
-            <div class="campo">
-              <label>Valor</label>
-              <input type="number" id="dtValor" step="0.01" min="0" required>
-            </div>
-            <div class="campo">
-              <label>Parcela</label>
-              <select id="dtParcela" required>
-                <option value="1">1ª parcela</option>
-                <option value="2">2ª parcela</option>
-                <option value="unica">Parcela única</option>
-              </select>
-            </div>
-            <div class="campo">
-              <label>Mês de pagamento</label>
-              <input type="month" id="dtMes" required title="Mês em que esse 13º é pago. Só soma na Sobra e no WhatsApp quando for o mês atual.">
-            </div>
-            <div class="campo campo-botao-cons">
-              <button type="submit" class="btn-primario">Adicionar</button>
-            </div>
-          </form>
-          <p class="doc-erro" id="dtErro"></p>
-          <div id="listaDecimo" class="lista-consignados">
-            <p class="doc-carregando">Carregando...</p>
-          </div>
-
           <h4 class="doc-subtitulo">Ativos</h4>
           <div id="listaConsignadosAtivos" class="lista-consignados">
             <p class="doc-carregando">Carregando...</p>
@@ -170,8 +130,6 @@
     });
     document.getElementById("formConsignado").addEventListener("submit", onSubmitConsignado);
     document.getElementById("btnCancelarEdicaoCons").addEventListener("click", cancelarEdicaoConsignado);
-    document.getElementById("dtMes").value = mesPagamentoAtualISO();
-    document.getElementById("formDecimo").addEventListener("submit", onSubmitDecimo);
   }
 
   function fecharModalConsignados() {
@@ -331,87 +289,7 @@
     }
   }
 
-  // ---------- 13º salário ----------
-  // Guardado em: cadastros_funcionarios/{id}/decimo_terceiro/{autoId}
-  // Campos: valor, parcela ("1" | "2" | "unica"), mesPagamento ("aaaa-mm").
-  // Só entra na Sobra e no WhatsApp quando mesPagamento é o mês atual.
-
-  async function carregarDecimoTerceiro() {
-    const wrap = document.getElementById("listaDecimo");
-    if (!wrap) return;
-    try {
-      const { collection, getDocs } = window.fs;
-      const snap = await getDocs(
-        collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro")
-      );
-      const itens = [];
-      snap.forEach((d) => itens.push({ id: d.id, ...d.data() }));
-      itens.sort((a, b) => String(b.mesPagamento).localeCompare(String(a.mesPagamento)));
-      const mesAtual = mesPagamentoAtualISO();
-
-      wrap.innerHTML = itens.length
-        ? itens.map((item) => `
-          <div class="linha-consignado">
-            <div class="linha-doc-info">
-              <strong>${escaparHtmlCons(ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário")} — ${formatarMoeda(item.valor)}</strong>
-              <span class="cons-valor">Pagamento em ${escaparHtmlCons(formatarMesPagamento(item.mesPagamento))}${item.mesPagamento === mesAtual ? " · soma neste mês" : ""}</span>
-            </div>
-            <div class="cons-acoes">
-              <button type="button" class="btn-icone" title="Excluir" data-excluir-decimo="${item.id}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </button>
-            </div>
-          </div>`).join("")
-        : `<p class="doc-vazio">Nenhum 13º lançado.</p>`;
-
-      wrap.querySelectorAll("[data-excluir-decimo]").forEach((btn) => {
-        btn.addEventListener("click", () => excluirDecimo(btn.dataset.excluirDecimo));
-      });
-    } catch (erro) {
-      console.error("Erro ao carregar 13º:", erro);
-      wrap.innerHTML = `<p class="doc-erro">Não foi possível carregar o 13º.</p>`;
-    }
-  }
-
-  async function onSubmitDecimo(e) {
-    e.preventDefault();
-    const erroEl = document.getElementById("dtErro");
-    erroEl.textContent = "";
-    const valor = Number(document.getElementById("dtValor").value);
-    const parcela = document.getElementById("dtParcela").value;
-    const mesPagamento = document.getElementById("dtMes").value;
-    if (!valor || valor <= 0 || !mesPagamento) {
-      erroEl.textContent = "Preenche o valor e o mês de pagamento do 13º.";
-      return;
-    }
-    try {
-      const { collection, addDoc, serverTimestamp } = window.fs;
-      await addDoc(
-        collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro"),
-        { valor, parcela, mesPagamento, criadoEm: serverTimestamp() }
-      );
-      document.getElementById("formDecimo").reset();
-      document.getElementById("dtMes").value = mesPagamentoAtualISO();
-      await Promise.all([carregarDecimoTerceiro(), atualizarResumoFinanceiroFunc()]);
-    } catch (erro) {
-      console.error("Erro ao salvar 13º:", erro);
-      erroEl.textContent = "Não foi possível salvar o 13º. Tente novamente.";
-    }
-  }
-
-  async function excluirDecimo(id) {
-    if (!confirm("Excluir este lançamento de 13º? Essa ação não pode ser desfeita.")) return;
-    try {
-      const { doc, deleteDoc } = window.fs;
-      await deleteDoc(doc(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro", id));
-      await Promise.all([carregarDecimoTerceiro(), atualizarResumoFinanceiroFunc()]);
-    } catch (erro) {
-      console.error("Erro ao excluir 13º:", erro);
-      document.getElementById("dtErro").textContent = "Não foi possível excluir. Tente novamente.";
-    }
-  }
-
-  // ---------- Resumo financeiro (Salário / Empréstimo / Vale / 13º / Sobra) ----------
+  // ---------- Resumo financeiro (Salário / Empréstimo / Vale / Sobra) ----------
 
   function renderCardResumoCons(titulo, valor, classe) {
     return `
@@ -461,34 +339,14 @@
         erroVale = erroDoVale;
       }
 
-      // 13º — soma só os lançamentos cujo mês de pagamento é o mês atual
-      let totalDecimo = 0;
-      const parcelasDecimo = [];
-      try {
-        const snapDec = await getDocs(
-          collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro")
-        );
-        const mesAtualDec = mesPagamentoAtualISO();
-        snapDec.forEach((d) => {
-          const item = d.data();
-          if (item.mesPagamento === mesAtualDec) {
-            const v = Number(item.valor) || 0;
-            totalDecimo += v;
-            parcelasDecimo.push({ valor: v, rotulo: ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário" });
-          }
-        });
-      } catch (erroDec) {
-        console.error("Erro ao ler 13º:", erroDec);
-      }
-
       const MESES_CONS_REF = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
       const refMes = typeof window.obterMesReferenciaSalario === "function"
         ? window.obterMesReferenciaSalario()
         : null;
       const rotuloVale = refMes ? `Vale (ref. ${MESES_CONS_REF[refMes.mes - 1]})` : "Vale";
 
-      const sobra = salario - totalEmprestimo - totalVale + totalDecimo;
-      dadosFinanceirosAtuais = { salario, totalEmprestimo, totalVale, totalDecimo, parcelasDecimo, sobra, telefone };
+      const sobra = salario - totalEmprestimo - totalVale;
+      dadosFinanceirosAtuais = { salario, totalEmprestimo, totalVale, sobra, telefone };
 
       wrap.innerHTML = `
         ${renderCardResumoCons("Salário", formatarMoeda(salario), "")}
@@ -496,7 +354,6 @@
         ${erroVale
           ? renderCardResumoCons(rotuloVale, "Erro", "tipo-atencao")
           : renderCardResumoCons(rotuloVale, formatarMoeda(totalVale), "tipo-atencao")}
-        ${totalDecimo > 0 ? renderCardResumoCons("13º (neste mês)", formatarMoeda(totalDecimo), "tipo-frota") : ""}
         ${renderCardResumoCons("Sobra", formatarMoeda(sobra), sobra < 0 ? "tipo-atencao" : "tipo-frota")}
       `;
 
@@ -525,7 +382,7 @@
 
   async function abrirPreviaMensagemSalario() {
     if (!dadosFinanceirosAtuais) return;
-    const { salario, totalEmprestimo, totalVale, parcelasDecimo, sobra, telefone } = dadosFinanceirosAtuais;
+    const { salario, totalEmprestimo, totalVale, sobra, telefone } = dadosFinanceirosAtuais;
 
     const digitosTelefone = String(telefone).replace(/\D/g, "");
     const telefoneValido = digitosTelefone.length >= 10;
@@ -541,9 +398,6 @@
     mensagem += `Salário: ${formatarMoeda(salario)}\n`;
     if (totalEmprestimo > 0) mensagem += `Desconto de empréstimo: ${formatarMoeda(totalEmprestimo)}\n`;
     if (totalVale > 0) mensagem += `Vale retirado ${rotuloMesMsg}: ${formatarMoeda(totalVale)}\n`;
-    (parcelasDecimo || []).forEach((p) => {
-      mensagem += `13º salário (${p.rotulo.toLowerCase()}): ${formatarMoeda(p.valor)}\n`;
-    });
     mensagem += `\nValor líquido: ${formatarMoeda(sobra)}`;
 
     // Busca o holerite pra mostrar junto — prioriza o do mês vigente,
