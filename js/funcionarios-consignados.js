@@ -165,7 +165,7 @@
             </div>
           </form>
           <p class="doc-erro" id="dtErro"></p>
-          <div id="listaDecimo" class="lista-consignados">
+          <div id="listaDecimo" class="lista-consignados" style="display:flex; flex-direction:column; gap:8px; width:100%;">
             <p class="doc-carregando">Carregando...</p>
           </div>
 
@@ -372,16 +372,16 @@
 
       wrap.innerHTML = itens.length
         ? itens.map((item) => `
-          <div class="linha-consignado">
-            <div class="linha-doc-info">
+          <div class="linha-consignado" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; width:100%; box-sizing:border-box;">
+            <div class="linha-doc-info" style="flex:1 1 220px; min-width:0;">
               <strong>${escaparHtmlCons(ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário")} — ${formatarMoeda(item.valor)}</strong>
               <span class="cons-valor">Pagamento em ${escaparHtmlCons(formatarDataPagamentoDecimo(item))}</span>
             </div>
-            <div class="cons-acoes" style="flex-wrap:wrap; justify-content:flex-end;">
+            <div class="cons-acoes" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; flex:0 1 auto;">
               ${item.holeriteUrl
                 ? `<a href="${escaparHtmlCons(item.holeriteUrl)}" target="_blank" rel="noopener" class="btn-secundario" style="padding:7px 12px; font-size:12.5px; white-space:nowrap;">Ver holerite</a>`
                 : ""}
-              <button type="button" class="btn-secundario" data-anexar-decimo="${item.id}" style="padding:7px 12px; font-size:12.5px; white-space:nowrap;">${item.holeriteUrl ? "Trocar holerite" : "Anexar holerite"}</button>
+              <button type="button" class="btn-primario" data-anexar-decimo="${item.id}" style="width:auto; padding:7px 14px; font-size:12.5px; white-space:nowrap;">${item.holeriteUrl ? "Trocar holerite" : "Anexar holerite"}</button>
               <input type="file" accept="application/pdf,image/*" hidden data-arquivo-decimo="${item.id}">
               <button type="button" title="Enviar 13º por WhatsApp" data-whats-decimo="${item.id}" style="display:inline-flex; align-items:center; gap:6px; background:#25D366; color:#0B2E1A; font-weight:700; font-size:12.5px; border:none; border-radius:8px; padding:7px 12px; cursor:pointer; white-space:nowrap;">
                 <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px; height:16px;"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.71.45 3.39 1.3 4.86L2.05 22l5.36-1.4c1.42.77 3.01 1.18 4.63 1.18h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42a8.2 8.2 0 0 1 2.41 5.82c0 4.55-3.7 8.25-8.25 8.25a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.18.83.85-3.1-.2-.32a8.18 8.18 0 0 1-1.25-4.36c0-4.55 3.7-8.25 8.25-8.25zm-4.55 4.6c-.16 0-.42.06-.65.31-.22.25-.85.83-.85 2.02 0 1.19.87 2.34.99 2.5.12.16 1.7 2.6 4.12 3.64 2.02.87 2.43.7 2.87.65.44-.05 1.42-.58 1.62-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28-.24-.12-1.42-.7-1.64-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1.01-.37-1.92-1.18-.71-.63-1.19-1.42-1.33-1.66-.14-.24-.01-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.31-.74-1.8-.19-.46-.39-.4-.54-.4z"/></svg>
