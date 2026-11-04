@@ -65,6 +65,19 @@
     return `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}`;
   }
 
+  function dataPagamentoHojeISO() {
+    const hoje = new Date();
+    return `${mesPagamentoAtualISO()}-${String(hoje.getDate()).padStart(2, "0")}`;
+  }
+
+  // Mostra dd/mm/aaaa quando existe data; lançamentos antigos (só mês) mostram o mês.
+  function formatarDataPagamentoDecimo(item) {
+    if (item.dataPagamento && /^\d{4}-\d{2}-\d{2}$/.test(item.dataPagamento)) {
+      return item.dataPagamento.split("-").reverse().join("/");
+    }
+    return formatarMesPagamento(item.mesPagamento);
+  }
+
   function formatarMesPagamento(anoMes) {
     const [ano, mes] = String(anoMes || "").split("-");
     if (!ano || !mes) return "—";
@@ -129,7 +142,7 @@
           <form id="formDecimo" class="form-consignado form-consignado-linha">
             <div class="campo">
               <label>Valor</label>
-              <input type="number" id="dtValor" step="0.01" min="0" required>
+              <input type="text" inputmode="numeric" id="dtValor" placeholder="0,00" oninput="mascaraMoedaInput(this)" required>
             </div>
             <div class="campo">
               <label>Parcela</label>
@@ -140,8 +153,8 @@
               </select>
             </div>
             <div class="campo">
-              <label>Mês de pagamento</label>
-              <input type="month" id="dtMes" required title="Mês em que esse 13º é pago. Só soma na Sobra e no WhatsApp quando for o mês atual.">
+              <label>Data de pagamento</label>
+              <input type="date" id="dtMes" required title="Dia em que esse 13º é pago. Só soma na Sobra e no WhatsApp quando a data cair no mês atual.">
             </div>
             <div class="campo campo-botao-cons">
               <button type="submit" class="btn-primario">Adicionar</button>
@@ -170,7 +183,7 @@
     });
     document.getElementById("formConsignado").addEventListener("submit", onSubmitConsignado);
     document.getElementById("btnCancelarEdicaoCons").addEventListener("click", cancelarEdicaoConsignado);
-    document.getElementById("dtMes").value = mesPagamentoAtualISO();
+    document.getElementById("dtMes").value = dataPagamentoHojeISO();
     document.getElementById("formDecimo").addEventListener("submit", onSubmitDecimo);
   }
 
@@ -333,7 +346,8 @@
 
   // ---------- 13º salário ----------
   // Guardado em: cadastros_funcionarios/{id}/decimo_terceiro/{autoId}
-  // Campos: valor, parcela ("1" | "2" | "unica"), mesPagamento ("aaaa-mm").
+  // Campos: valor, parcela ("1" | "2" | "unica"), dataPagamento ("aaaa-mm-dd")
+  // e mesPagamento ("aaaa-mm", derivado da data — usado na soma do mês).
   // Só entra na Sobra e no WhatsApp quando mesPagamento é o mês atual.
 
   async function carregarDecimoTerceiro() {
@@ -346,7 +360,7 @@
       );
       const itens = [];
       snap.forEach((d) => itens.push({ id: d.id, ...d.data() }));
-      itens.sort((a, b) => String(b.mesPagamento).localeCompare(String(a.mesPagamento)));
+      itens.sort((a, b) => String(b.dataPagamento || b.mesPagamento).localeCompare(String(a.dataPagamento || a.mesPagamento)));
       const mesAtual = mesPagamentoAtualISO();
 
       wrap.innerHTML = itens.length
@@ -354,7 +368,7 @@
           <div class="linha-consignado">
             <div class="linha-doc-info">
               <strong>${escaparHtmlCons(ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário")} — ${formatarMoeda(item.valor)}</strong>
-              <span class="cons-valor">Pagamento em ${escaparHtmlCons(formatarMesPagamento(item.mesPagamento))}${item.mesPagamento === mesAtual ? " · soma neste mês" : ""}</span>
+              <span class="cons-valor">Pagamento em ${escaparHtmlCons(formatarDataPagamentoDecimo(item))}${item.mesPagamento === mesAtual ? " · soma neste mês" : ""}</span>
             </div>
             <div class="cons-acoes">
               <button type="button" class="btn-icone" title="Excluir" data-excluir-decimo="${item.id}">
@@ -377,21 +391,22 @@
     e.preventDefault();
     const erroEl = document.getElementById("dtErro");
     erroEl.textContent = "";
-    const valor = Number(document.getElementById("dtValor").value);
+    const valor = Number(String(document.getElementById("dtValor").value).replace(/\./g, "").replace(",", ".")) || 0;
     const parcela = document.getElementById("dtParcela").value;
-    const mesPagamento = document.getElementById("dtMes").value;
-    if (!valor || valor <= 0 || !mesPagamento) {
-      erroEl.textContent = "Preenche o valor e o mês de pagamento do 13º.";
+    const dataPagamento = document.getElementById("dtMes").value;
+    const mesPagamento = dataPagamento.slice(0, 7);
+    if (!valor || valor <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(dataPagamento)) {
+      erroEl.textContent = "Preenche o valor e a data de pagamento do 13º.";
       return;
     }
     try {
       const { collection, addDoc, serverTimestamp } = window.fs;
       await addDoc(
         collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro"),
-        { valor, parcela, mesPagamento, criadoEm: serverTimestamp() }
+        { valor, parcela, dataPagamento, mesPagamento, criadoEm: serverTimestamp() }
       );
       document.getElementById("formDecimo").reset();
-      document.getElementById("dtMes").value = mesPagamentoAtualISO();
+      document.getElementById("dtMes").value = dataPagamentoHojeISO();
       await Promise.all([carregarDecimoTerceiro(), atualizarResumoFinanceiroFunc()]);
     } catch (erro) {
       console.error("Erro ao salvar 13º:", erro);
