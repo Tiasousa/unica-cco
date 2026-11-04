@@ -19,7 +19,7 @@
   let funcionarioId = null;
   let funcionarioNome = "";
   let editandoId = null; // null = criando novo; senão, id do consignado em edição
-  let dadosFinanceirosAtuais = null; // { salario, totalEmprestimo, totalVale, totalDecimo, parcelasDecimo, sobra, telefone }
+  let dadosFinanceirosAtuais = null; // { salario, totalEmprestimo, totalVale, sobra, telefone }
 
   function escaparHtmlCons(texto) {
     const div = document.createElement("div");
@@ -154,7 +154,7 @@
             </div>
             <div class="campo">
               <label>Data de pagamento</label>
-              <input type="date" id="dtMes" required title="Dia em que esse 13º é pago. Só soma na Sobra e no WhatsApp quando a data cair no mês atual.">
+              <input type="date" id="dtMes" required title="Dia em que esse 13º é pago (ex: 20/11). O 13º é pago separado do salário.">
             </div>
             <div class="campo campo-botao-cons">
               <button type="submit" class="btn-primario">Adicionar</button>
@@ -347,8 +347,11 @@
   // ---------- 13º salário ----------
   // Guardado em: cadastros_funcionarios/{id}/decimo_terceiro/{autoId}
   // Campos: valor, parcela ("1" | "2" | "unica"), dataPagamento ("aaaa-mm-dd")
-  // e mesPagamento ("aaaa-mm", derivado da data — usado na soma do mês).
-  // Só entra na Sobra e no WhatsApp quando mesPagamento é o mês atual.
+  // e mesPagamento ("aaaa-mm", derivado da data).
+  // O 13º é pago SEPARADO do salário (outra data): não entra na Sobra
+  // nem na mensagem do salário. Tem mensagem de WhatsApp própria.
+
+  let itensDecimoCarregados = [];
 
   async function carregarDecimoTerceiro() {
     const wrap = document.getElementById("listaDecimo");
@@ -361,16 +364,19 @@
       const itens = [];
       snap.forEach((d) => itens.push({ id: d.id, ...d.data() }));
       itens.sort((a, b) => String(b.dataPagamento || b.mesPagamento).localeCompare(String(a.dataPagamento || a.mesPagamento)));
-      const mesAtual = mesPagamentoAtualISO();
+      itensDecimoCarregados = itens;
 
       wrap.innerHTML = itens.length
         ? itens.map((item) => `
           <div class="linha-consignado">
             <div class="linha-doc-info">
               <strong>${escaparHtmlCons(ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário")} — ${formatarMoeda(item.valor)}</strong>
-              <span class="cons-valor">Pagamento em ${escaparHtmlCons(formatarDataPagamentoDecimo(item))}${item.mesPagamento === mesAtual ? " · soma neste mês" : ""}</span>
+              <span class="cons-valor">Pagamento em ${escaparHtmlCons(formatarDataPagamentoDecimo(item))}</span>
             </div>
             <div class="cons-acoes">
+              <button type="button" class="btn-icone" title="Enviar 13º por WhatsApp" data-whats-decimo="${item.id}">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.71.45 3.39 1.3 4.86L2.05 22l5.36-1.4c1.42.77 3.01 1.18 4.63 1.18h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42a8.2 8.2 0 0 1 2.41 5.82c0 4.55-3.7 8.25-8.25 8.25a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.18.83.85-3.1-.2-.32a8.18 8.18 0 0 1-1.25-4.36c0-4.55 3.7-8.25 8.25-8.25z"/></svg>
+              </button>
               <button type="button" class="btn-icone" title="Excluir" data-excluir-decimo="${item.id}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
               </button>
@@ -378,6 +384,9 @@
           </div>`).join("")
         : `<p class="doc-vazio">Nenhum 13º lançado.</p>`;
 
+      wrap.querySelectorAll("[data-whats-decimo]").forEach((btn) => {
+        btn.addEventListener("click", () => abrirPreviaMensagemDecimo(btn.dataset.whatsDecimo));
+      });
       wrap.querySelectorAll("[data-excluir-decimo]").forEach((btn) => {
         btn.addEventListener("click", () => excluirDecimo(btn.dataset.excluirDecimo));
       });
@@ -476,34 +485,14 @@
         erroVale = erroDoVale;
       }
 
-      // 13º — soma só os lançamentos cujo mês de pagamento é o mês atual
-      let totalDecimo = 0;
-      const parcelasDecimo = [];
-      try {
-        const snapDec = await getDocs(
-          collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro")
-        );
-        const mesAtualDec = mesPagamentoAtualISO();
-        snapDec.forEach((d) => {
-          const item = d.data();
-          if (item.mesPagamento === mesAtualDec) {
-            const v = Number(item.valor) || 0;
-            totalDecimo += v;
-            parcelasDecimo.push({ valor: v, rotulo: ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário" });
-          }
-        });
-      } catch (erroDec) {
-        console.error("Erro ao ler 13º:", erroDec);
-      }
-
       const MESES_CONS_REF = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
       const refMes = typeof window.obterMesReferenciaSalario === "function"
         ? window.obterMesReferenciaSalario()
         : null;
       const rotuloVale = refMes ? `Vale (ref. ${MESES_CONS_REF[refMes.mes - 1]})` : "Vale";
 
-      const sobra = salario - totalEmprestimo - totalVale + totalDecimo;
-      dadosFinanceirosAtuais = { salario, totalEmprestimo, totalVale, totalDecimo, parcelasDecimo, sobra, telefone };
+      const sobra = salario - totalEmprestimo - totalVale;
+      dadosFinanceirosAtuais = { salario, totalEmprestimo, totalVale, sobra, telefone };
 
       wrap.innerHTML = `
         ${renderCardResumoCons("Salário", formatarMoeda(salario), "")}
@@ -511,7 +500,6 @@
         ${erroVale
           ? renderCardResumoCons(rotuloVale, "Erro", "tipo-atencao")
           : renderCardResumoCons(rotuloVale, formatarMoeda(totalVale), "tipo-atencao")}
-        ${totalDecimo > 0 ? renderCardResumoCons("13º (neste mês)", formatarMoeda(totalDecimo), "tipo-frota") : ""}
         ${renderCardResumoCons("Sobra", formatarMoeda(sobra), sobra < 0 ? "tipo-atencao" : "tipo-frota")}
       `;
 
@@ -538,9 +526,66 @@
     }
   }
 
+  // Mensagem própria do 13º (pago em outra data, separado do salário)
+  function abrirPreviaMensagemDecimo(id) {
+    const item = itensDecimoCarregados.find((i) => i.id === id);
+    if (!item) return;
+    const telefone = (dadosFinanceirosAtuais && dadosFinanceirosAtuais.telefone) || "";
+    const rotuloParcela = (ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário").toLowerCase();
+    const dataTexto = formatarDataPagamentoDecimo(item);
+    const hojeISO = dataPagamentoHojeISO();
+    const jaPago = item.dataPagamento && item.dataPagamento < hojeISO;
+    const primeiroNome = (funcionarioNome || "").trim().split(" ")[0] || "";
+    const mensagem =
+      `Olá ${primeiroNome}, informação sobre o seu 13º salário (${rotuloParcela}):\n\n` +
+      `Valor: ${formatarMoeda(item.valor)}\n` +
+      `${jaPago ? "Pago em" : "Pagamento previsto para"}: ${dataTexto}`;
+
+    document.getElementById("modalWhatsPrevia")?.remove();
+    const modalHtml = `
+      <div class="modal-overlay" id="modalWhatsPrevia">
+        <div class="modal-cadastro">
+          <div class="modal-cabecalho">
+            <h3>13º por WhatsApp — ${escaparHtmlCons(funcionarioNome)}</h3>
+            <button type="button" class="btn-fechar-modal" id="btnFecharWhatsPrevia">${window.iconeX ? window.iconeX() : "×"}</button>
+          </div>
+          <div class="campo">
+            <label>Telefone (com DDD)</label>
+            <input type="text" id="whatsTelefoneEditavel" value="${escaparHtmlCons(telefone)}" placeholder="Ex: 64 99999-9999">
+          </div>
+          <div class="campo">
+            <label>Mensagem (pode editar antes de enviar)</label>
+            <textarea id="whatsMensagemEditavel" rows="5" style="width:100%; background:#141414; border:1px solid #2E2E2E; border-radius:8px; padding:10px; color:var(--branco); font-size:13.5px; font-family:inherit;">${escaparHtmlCons(mensagem)}</textarea>
+          </div>
+          <div class="modal-acoes">
+            <button type="button" class="btn-secundario" id="btnCancelarWhatsPrevia">Cancelar</button>
+            <button type="button" class="btn-primario" id="btnAbrirWhatsApp">Abrir WhatsApp</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.insertAdjacentHTML("beforeend", modalHtml);
+    const fechar = () => document.getElementById("modalWhatsPrevia")?.remove();
+    document.getElementById("btnFecharWhatsPrevia").addEventListener("click", fechar);
+    document.getElementById("btnCancelarWhatsPrevia").addEventListener("click", fechar);
+    document.getElementById("modalWhatsPrevia").addEventListener("click", (e) => {
+      if (e.target.id === "modalWhatsPrevia") fechar();
+    });
+    document.getElementById("btnAbrirWhatsApp").addEventListener("click", () => {
+      const telDigitado = document.getElementById("whatsTelefoneEditavel").value.replace(/\D/g, "");
+      if (telDigitado.length < 10) {
+        alert("Telefone inválido. Confirma o DDD + número antes de continuar.");
+        return;
+      }
+      const comCodigoPais = telDigitado.startsWith("55") ? telDigitado : `55${telDigitado}`;
+      const textoFinal = document.getElementById("whatsMensagemEditavel").value;
+      window.open(`https://wa.me/${comCodigoPais}?text=${encodeURIComponent(textoFinal)}`, "_blank");
+      fechar();
+    });
+  }
+
   async function abrirPreviaMensagemSalario() {
     if (!dadosFinanceirosAtuais) return;
-    const { salario, totalEmprestimo, totalVale, parcelasDecimo, sobra, telefone } = dadosFinanceirosAtuais;
+    const { salario, totalEmprestimo, totalVale, sobra, telefone } = dadosFinanceirosAtuais;
 
     const digitosTelefone = String(telefone).replace(/\D/g, "");
     const telefoneValido = digitosTelefone.length >= 10;
@@ -556,9 +601,6 @@
     mensagem += `Salário: ${formatarMoeda(salario)}\n`;
     if (totalEmprestimo > 0) mensagem += `Desconto de empréstimo: ${formatarMoeda(totalEmprestimo)}\n`;
     if (totalVale > 0) mensagem += `Vale retirado ${rotuloMesMsg}: ${formatarMoeda(totalVale)}\n`;
-    (parcelasDecimo || []).forEach((p) => {
-      mensagem += `13º salário (${p.rotulo.toLowerCase()}): ${formatarMoeda(p.valor)}\n`;
-    });
     mensagem += `\nValor líquido: ${formatarMoeda(sobra)}`;
 
     // Busca o holerite pra mostrar junto — prioriza o do mês vigente,
