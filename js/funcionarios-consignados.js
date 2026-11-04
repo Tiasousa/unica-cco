@@ -379,7 +379,7 @@
             </div>
             <div class="cons-acoes" style="display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; flex:0 1 auto;">
               ${item.holeriteUrl
-                ? `<a href="${escaparHtmlCons(item.holeriteUrl)}" target="_blank" rel="noopener" class="btn-secundario" style="padding:7px 12px; font-size:12.5px; white-space:nowrap;">Ver holerite</a>`
+                ? `<a href="${escaparHtmlCons(item.holeriteUrl)}" target="_blank" rel="noopener" class="btn-primario" style="display:inline-flex; align-items:center; width:auto; padding:7px 14px; font-size:12.5px; white-space:nowrap; text-decoration:none;">Ver holerite</a>`
                 : ""}
               <button type="button" class="btn-primario" data-anexar-decimo="${item.id}" style="width:auto; padding:7px 14px; font-size:12.5px; white-space:nowrap;">${item.holeriteUrl ? "Trocar holerite" : "Anexar holerite"}</button>
               <input type="file" accept="application/pdf,image/*" hidden data-arquivo-decimo="${item.id}">
