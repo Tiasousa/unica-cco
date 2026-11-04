@@ -156,6 +156,10 @@
               <label>Data de pagamento</label>
               <input type="date" id="dtMes" required title="Dia em que esse 13º é pago (ex: 20/11). O 13º é pago separado do salário.">
             </div>
+            <div class="campo">
+              <label>Holerite do 13º (opcional)</label>
+              <input type="file" id="dtArquivo" accept="application/pdf,image/*" title="PDF ou foto do holerite do 13º. Dá pra anexar depois também.">
+            </div>
             <div class="campo campo-botao-cons">
               <button type="submit" class="btn-primario">Adicionar</button>
             </div>
@@ -373,7 +377,12 @@
               <strong>${escaparHtmlCons(ROTULO_PARCELA_DECIMO[item.parcela] || "13º salário")} — ${formatarMoeda(item.valor)}</strong>
               <span class="cons-valor">Pagamento em ${escaparHtmlCons(formatarDataPagamentoDecimo(item))}</span>
             </div>
-            <div class="cons-acoes">
+            <div class="cons-acoes" style="flex-wrap:wrap; justify-content:flex-end;">
+              ${item.holeriteUrl
+                ? `<a href="${escaparHtmlCons(item.holeriteUrl)}" target="_blank" rel="noopener" class="btn-secundario" style="padding:7px 12px; font-size:12.5px; white-space:nowrap;">Ver holerite</a>`
+                : ""}
+              <button type="button" class="btn-secundario" data-anexar-decimo="${item.id}" style="padding:7px 12px; font-size:12.5px; white-space:nowrap;">${item.holeriteUrl ? "Trocar holerite" : "Anexar holerite"}</button>
+              <input type="file" accept="application/pdf,image/*" hidden data-arquivo-decimo="${item.id}">
               <button type="button" title="Enviar 13º por WhatsApp" data-whats-decimo="${item.id}" style="display:inline-flex; align-items:center; gap:6px; background:#25D366; color:#0B2E1A; font-weight:700; font-size:12.5px; border:none; border-radius:8px; padding:7px 12px; cursor:pointer; white-space:nowrap;">
                 <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px; height:16px;"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.71.45 3.39 1.3 4.86L2.05 22l5.36-1.4c1.42.77 3.01 1.18 4.63 1.18h.01c5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2zm0 1.67c2.2 0 4.26.86 5.82 2.42a8.2 8.2 0 0 1 2.41 5.82c0 4.55-3.7 8.25-8.25 8.25a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-3.18.83.85-3.1-.2-.32a8.18 8.18 0 0 1-1.25-4.36c0-4.55 3.7-8.25 8.25-8.25zm-4.55 4.6c-.16 0-.42.06-.65.31-.22.25-.85.83-.85 2.02 0 1.19.87 2.34.99 2.5.12.16 1.7 2.6 4.12 3.64 2.02.87 2.43.7 2.87.65.44-.05 1.42-.58 1.62-1.14.2-.56.2-1.04.14-1.14-.06-.1-.22-.16-.46-.28-.24-.12-1.42-.7-1.64-.78-.22-.08-.38-.12-.54.12-.16.24-.62.78-.76.94-.14.16-.28.18-.52.06-.24-.12-1.01-.37-1.92-1.18-.71-.63-1.19-1.42-1.33-1.66-.14-.24-.01-.37.11-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.31-.74-1.8-.19-.46-.39-.4-.54-.4z"/></svg>
                 Enviar WhatsApp
@@ -385,6 +394,25 @@
           </div>`).join("")
         : `<p class="doc-vazio">Nenhum 13º lançado.</p>`;
 
+      wrap.querySelectorAll("[data-anexar-decimo]").forEach((btn) => {
+        const input = wrap.querySelector(`[data-arquivo-decimo="${btn.dataset.anexarDecimo}"]`);
+        btn.addEventListener("click", () => input.click());
+        input.addEventListener("change", async () => {
+          const arquivo = input.files && input.files[0];
+          if (!arquivo) return;
+          btn.disabled = true;
+          btn.textContent = "Enviando...";
+          const erroEl = document.getElementById("dtErro");
+          erroEl.textContent = "";
+          try {
+            await enviarHolerite13(btn.dataset.anexarDecimo, arquivo);
+          } catch (erro) {
+            console.error("Erro ao anexar holerite do 13º:", erro);
+            erroEl.textContent = erro.message || "Não foi possível enviar o holerite. Tente novamente.";
+          }
+          await carregarDecimoTerceiro();
+        });
+      });
       wrap.querySelectorAll("[data-whats-decimo]").forEach((btn) => {
         btn.addEventListener("click", () => abrirPreviaMensagemDecimo(btn.dataset.whatsDecimo));
       });
@@ -397,6 +425,35 @@
     }
   }
 
+  const LIMITE_HOLERITE13_BYTES = 20 * 1024 * 1024;
+
+  // Sobe o holerite do 13º pro Storage e grava o link no lançamento.
+  // Storage: funcionarios/{id}/holerites13/{idDoLancamento}.{ext}
+  async function enviarHolerite13(idLancamento, arquivo) {
+    if (arquivo.size > LIMITE_HOLERITE13_BYTES) {
+      throw new Error("Arquivo muito grande (máximo 20 MB).");
+    }
+    const { ref, uploadBytes, getDownloadURL, deleteObject } = window.fst;
+    const { doc, updateDoc, serverTimestamp } = window.fs;
+    const ext = ((arquivo.name.split(".").pop() || "pdf").toLowerCase().replace(/[^a-z0-9]/g, "")) || "pdf";
+    const caminho = `funcionarios/${funcionarioId}/holerites13/${idLancamento}.${ext}`;
+    const anterior = itensDecimoCarregados.find((i) => i.id === idLancamento);
+
+    const refArquivo = ref(window.firebaseStorage, caminho);
+    await uploadBytes(refArquivo, arquivo);
+    const url = await getDownloadURL(refArquivo);
+
+    await updateDoc(
+      doc(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro", idLancamento),
+      { holeriteUrl: url, holeriteNome: arquivo.name, holeriteStoragePath: caminho, holeriteEnviadoEm: serverTimestamp() }
+    );
+
+    // Troca por arquivo de outra extensão: apaga o antigo pra não sobrar lixo no Storage
+    if (anterior && anterior.holeriteStoragePath && anterior.holeriteStoragePath !== caminho) {
+      try { await deleteObject(ref(window.firebaseStorage, anterior.holeriteStoragePath)); } catch (e) { /* já não existe */ }
+    }
+  }
+
   async function onSubmitDecimo(e) {
     e.preventDefault();
     const erroEl = document.getElementById("dtErro");
@@ -405,19 +462,35 @@
     const parcela = document.getElementById("dtParcela").value;
     const dataPagamento = document.getElementById("dtMes").value;
     const mesPagamento = dataPagamento.slice(0, 7);
+    const arquivo = document.getElementById("dtArquivo").files[0] || null;
     if (!valor || valor <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(dataPagamento)) {
       erroEl.textContent = "Preenche o valor e a data de pagamento do 13º.";
       return;
     }
+    if (arquivo && arquivo.size > LIMITE_HOLERITE13_BYTES) {
+      erroEl.textContent = "Holerite muito grande (máximo 20 MB).";
+      return;
+    }
+    let avisoHolerite = "";
     try {
       const { collection, addDoc, serverTimestamp } = window.fs;
-      await addDoc(
+      const novoDoc = await addDoc(
         collection(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro"),
         { valor, parcela, dataPagamento, mesPagamento, criadoEm: serverTimestamp() }
       );
+      if (arquivo) {
+        try {
+          itensDecimoCarregados = [...itensDecimoCarregados, { id: novoDoc.id }];
+          await enviarHolerite13(novoDoc.id, arquivo);
+        } catch (erroUp) {
+          console.error("Erro ao anexar holerite do 13º:", erroUp);
+          avisoHolerite = "13º salvo, mas o holerite não subiu. Use o botão \"Anexar holerite\" na linha.";
+        }
+      }
       document.getElementById("formDecimo").reset();
       document.getElementById("dtMes").value = dataPagamentoHojeISO();
       await Promise.all([carregarDecimoTerceiro(), atualizarResumoFinanceiroFunc()]);
+      if (avisoHolerite) document.getElementById("dtErro").textContent = avisoHolerite;
     } catch (erro) {
       console.error("Erro ao salvar 13º:", erro);
       erroEl.textContent = "Não foi possível salvar o 13º. Tente novamente.";
@@ -425,10 +498,17 @@
   }
 
   async function excluirDecimo(id) {
-    if (!confirm("Excluir este lançamento de 13º? Essa ação não pode ser desfeita.")) return;
+    if (!confirm("Excluir este lançamento de 13º (e o holerite anexado, se tiver)? Essa ação não pode ser desfeita.")) return;
     try {
       const { doc, deleteDoc } = window.fs;
+      const item = itensDecimoCarregados.find((i) => i.id === id);
       await deleteDoc(doc(window.firebaseDb, "cadastros_funcionarios", funcionarioId, "decimo_terceiro", id));
+      if (item && item.holeriteStoragePath) {
+        try {
+          const { ref, deleteObject } = window.fst;
+          await deleteObject(ref(window.firebaseStorage, item.holeriteStoragePath));
+        } catch (e) { /* arquivo já não existia */ }
+      }
       await Promise.all([carregarDecimoTerceiro(), atualizarResumoFinanceiroFunc()]);
     } catch (erro) {
       console.error("Erro ao excluir 13º:", erro);
@@ -557,6 +637,16 @@
           <div class="campo">
             <label>Mensagem (pode editar antes de enviar)</label>
             <textarea id="whatsMensagemEditavel" rows="5" style="width:100%; background:#141414; border:1px solid #2E2E2E; border-radius:8px; padding:10px; color:var(--branco); font-size:13.5px; font-family:inherit;">${escaparHtmlCons(mensagem)}</textarea>
+          </div>
+          <div class="campo">
+            <label>Holerite do 13º</label>
+            ${item.holeriteUrl
+              ? `<div class="linha-holerite-whats">
+                  <span>${escaparHtmlCons(item.holeriteNome || "Holerite do 13º")}</span>
+                  <a href="${escaparHtmlCons(item.holeriteUrl)}" target="_blank" rel="noopener" class="btn-primario">Abrir holerite</a>
+                </div>
+                <p class="doc-data" style="margin-top:6px;">O WhatsApp não deixa anexar arquivo pelo link automaticamente — abre o holerite aqui, e depois anexa ele manualmente dentro da conversa (ícone de clipe do WhatsApp).</p>`
+              : `<p class="doc-vazio">Nenhum holerite anexado a este 13º. Use "Anexar holerite" na linha do 13º, se quiser mandar junto.</p>`}
           </div>
           <div class="modal-acoes">
             <button type="button" class="btn-secundario" id="btnCancelarWhatsPrevia">Cancelar</button>
