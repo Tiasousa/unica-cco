@@ -55,8 +55,8 @@ const CADASTROS_CONFIG = {
     campos: [
       { id: "nome", label: "Nome", tipo: "texto", obrigatorio: true },
       { id: "funcaoId", label: "Função", tipo: "referencia", colecaoRef: "cadastros_funcoes" },
-      { id: "telefone", label: "Telefone", tipo: "texto" },
-      { id: "cpf", label: "CPF", tipo: "texto" },
+      { id: "telefone", label: "Telefone", tipo: "telefone" },
+      { id: "cpf", label: "CPF", tipo: "cpf" },
       { id: "rg", label: "RG", tipo: "texto" },
       { id: "dataNascimento", label: "Data de nascimento", tipo: "data" },
       { id: "endereco", label: "Endereço", tipo: "texto" },
@@ -80,7 +80,7 @@ const CADASTROS_CONFIG = {
     colecao: "cadastros_fornecedores", titulo: "Fornecedores", campoPrincipal: "nome",
     campos: [
       { id: "nome", label: "Nome", tipo: "texto", obrigatorio: true },
-      { id: "telefone", label: "Telefone", tipo: "texto" },
+      { id: "telefone", label: "Telefone", tipo: "telefone" },
       { id: "cidade", label: "Cidade", tipo: "cidade" },
     ],
   },
@@ -127,6 +127,44 @@ function mascaraMoedaInput(input) {
   }
   const numero = Number(digitos) / 100;
   input.value = numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Padrão de telefone: (62) 99185-2014 (celular) ou (62) 3333-4444 (fixo).
+// Mostra qualquer telefone já cadastrado nesse padrão, mesmo que tenha
+// sido digitado "62991852014", "(62)99185-2014" ou "+55 62 99185-2014".
+function formatarTelefoneBR(valor) {
+  const original = String(valor ?? "");
+  let d = original.replace(/\D/g, "");
+  if (d.length > 11 && d.startsWith("55")) d = d.slice(2);
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return original;
+}
+
+// Padrão de CPF: 000.000.000-00
+function formatarCpfBR(valor) {
+  const original = String(valor ?? "");
+  const d = original.replace(/\D/g, "");
+  if (d.length === 11) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  return original;
+}
+
+// Máscara enquanto digita: o campo formata sozinho.
+function mascaraTelefoneInput(input) {
+  const d = input.value.replace(/\D/g, "").slice(0, 11);
+  if (!d) { input.value = ""; return; }
+  if (d.length <= 2) input.value = `(${d}`;
+  else if (d.length <= 6) input.value = `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  else if (d.length <= 10) input.value = `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  else input.value = `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+function mascaraCpfInput(input) {
+  const d = input.value.replace(/\D/g, "").slice(0, 11);
+  if (d.length <= 3) input.value = d;
+  else if (d.length <= 6) input.value = `${d.slice(0, 3)}.${d.slice(3)}`;
+  else if (d.length <= 9) input.value = `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+  else input.value = `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
 }
 
 // Escapa texto antes de colocar em innerHTML, pra evitar que alguém
@@ -202,6 +240,8 @@ function formatarValorCampo(item, campo) {
     return lista.map((id) => campo._mapaRef?.[id] || "?").join(", ");
   }
   if (valor === undefined || valor === null || valor === "") return "—";
+  if (campo.tipo === "telefone") return formatarTelefoneBR(valor);
+  if (campo.tipo === "cpf") return formatarCpfBR(valor);
   if (campo.tipo === "referencia") return campo._mapaRef?.[valor] || "—";
   if (campo.tipo === "select") return campo.opcoes.find(o => o.valor === valor)?.rotulo || valor;
   if (campo.tipo === "data") {
@@ -403,6 +443,20 @@ function renderCampoForm(campo, dados) {
           <span class="prefixo-moeda">R$</span>
           <input type="text" inputmode="numeric" id="campo_${campo.id}" value="${formatado}" placeholder="0,00" oninput="mascaraMoedaInput(this)" ${campo.obrigatorio ? "required" : ""}>
         </div>
+      </div>`;
+  }
+  if (campo.tipo === "telefone") {
+    return `
+      <div class="campo">
+        <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
+        <input type="text" inputmode="numeric" id="campo_${campo.id}" value="${escaparHtml(formatarTelefoneBR(valorAtual))}" placeholder="(62) 99999-9999" maxlength="15" oninput="mascaraTelefoneInput(this)" ${campo.obrigatorio ? "required" : ""}>
+      </div>`;
+  }
+  if (campo.tipo === "cpf") {
+    return `
+      <div class="campo">
+        <label>${campo.label}${campo.obrigatorio ? " *" : ""}</label>
+        <input type="text" inputmode="numeric" id="campo_${campo.id}" value="${escaparHtml(formatarCpfBR(valorAtual))}" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCpfInput(this)" ${campo.obrigatorio ? "required" : ""}>
       </div>`;
   }
   if (campo.tipo === "cidade") {
