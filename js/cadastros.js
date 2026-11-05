@@ -299,7 +299,7 @@ async function carregarTabelaCadastro(chave) {
           ${itens.map(item => `
             <tr data-busca="${escaparHtml(String(item[config.campoPrincipal] || "").toLowerCase())}" data-linha-id="${escaparHtml(item.id)}" data-nome-linha="${escaparHtml(item.nome || item[config.campoPrincipal] || "")}" class="linha-cadastro-clicavel">
               <td class="celula-principal">${escaparHtml(item[config.campoPrincipal]) || "—"}</td>
-              ${colsSecundarias.map(c => `<td>${escaparHtml(formatarValorCampo(item, c))}</td>`).join("")}
+              ${colsSecundarias.map(c => `<td${c.tipo === "telefone" || c.tipo === "cpf" ? ' style="white-space: nowrap;"' : ""}>${escaparHtml(formatarValorCampo(item, c))}</td>`).join("")}
               <td>${item.ativo === false ? '<span class="badge parada">Inativo</span>' : '<span class="badge ativa">Ativo</span>'}</td>
               <td class="celula-acoes">
                 ${chave === "cad-funcionarios"
